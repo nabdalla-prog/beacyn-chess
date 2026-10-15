@@ -12,8 +12,8 @@ highlights and short notes, finds your weak spots and trains them.
 
 No install, no account, no server — all your data stays in your browser.
 
-> **Status:** early development. Milestones 1–4 (play the coach, live
-> coaching, post-game review, skill profile) are done. See [PLAN.md](PLAN.md) for the roadmap.
+> **Status:** early development. Milestones 1–5 (play the coach, live
+> coaching, post-game review, skill profile, training) are done. See [PLAN.md](PLAN.md) for the roadmap.
 
 ## Features so far
 
@@ -60,6 +60,19 @@ No install, no account, no server — all your data stays in your browser.
 - Your three weakest skills, each with one sentence and a real position from
   your own games — tap to open it in the review
 - Trend lines showing how each skill changes game by game
+- Tactics count what you get right too: tactics you found and real threats
+  you defended, plus puzzles you solve
+
+**Training**
+
+- A daily plan built from your weakest skills: missed puzzles due for
+  review, positions from your own mistakes, themed puzzles and a game
+- Over 5,000 hand-filtered puzzles from the free Lichess puzzle database in
+  9 themes (mates, forks, pins, skewers, discovered attacks, loose and
+  trapped pieces), matched to your puzzle rating
+- Hints step by step (where to look → which piece → the move), or step
+  through the solution
+- Missed puzzles come back on a spaced-repetition schedule (SM-2)
 
 ## Run locally
 
@@ -98,6 +111,7 @@ Beacyn Chess is built on these open-source projects. Thank you to their authors.
 | [React](https://react.dev/) | User interface | MIT |
 | [idb](https://github.com/jakearchibald/idb) by Jake Archibald | IndexedDB storage | ISC |
 | [chess-openings](https://github.com/lichess-org/chess-openings) by the Lichess team | Opening names and ECO codes | CC0 |
+| [Lichess puzzle database](https://database.lichess.org/#puzzles) | Training puzzles (curated subset) | CC0 |
 
 The [Lexend](https://www.lexend.com/) font (SIL Open Font License 1.1) is
 bundled via [Fontsource](https://fontsource.org/).

@@ -4,6 +4,8 @@ import { RadarChart, Sparkline } from './SkillCharts'
 import { initialEvals, isAnalysed, runAnalysis, withAnalysis, type AnalysisRun } from '../coach/gameAnalysis'
 import {
   eventsFromGame,
+  eventsFromPuzzles,
+  type PuzzleResult,
   MOTIFS,
   RADAR_SKILLS,
   scoreSkills,
@@ -16,6 +18,8 @@ import {
 } from '../coach/skills'
 import type { GameRecord } from '../game/session'
 import { getGame, listGames, saveGame } from '../storage/db'
+import { loadTraining } from '../training/store'
+import { MOTIF_THEMES } from '../training/puzzles'
 
 const moveLabel = (ply: number, san: string) => `${Math.floor(ply / 2) + 1}${ply % 2 === 0 ? '.' : '…'} ${san}`
 const shortDate = (ms: number) => new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
@@ -25,10 +29,12 @@ const needsAnalysis = (g: GameRecord) => !!g.result && !isAnalysed(g) && g.moves
 
 export default function SkillsView({ onOpenReview, onPlay }: { onOpenReview: (id: string, ply: number) => void; onPlay: () => void }) {
   const [games, setGames] = useState<GameRecord[] | null>(null)
+  const [puzzles, setPuzzles] = useState<PuzzleResult[]>([])
   const [job, setJob] = useState<{ done: number; total: number; run: AnalysisRun | null } | null>(null)
 
   const reload = useCallback(() => {
     void listGames().then((g) => setGames(g.filter((x) => x.result)))
+    void loadTraining().then((t) => setPuzzles(t.results))
   }, [])
   useEffect(reload, [reload])
   useEffect(() => () => job?.run?.cancel(), [job?.run])
@@ -36,12 +42,19 @@ export default function SkillsView({ onOpenReview, onPlay }: { onOpenReview: (id
   const data = useMemo(() => {
     if (!games) return null
     const perGame = games.map((g) => ({ gameId: g.id, at: g.startedAt, events: eventsFromGame(g) }))
+    // Solved puzzles count toward tactics too, grouped by day.
+    const puzzleEvents = eventsFromPuzzles(puzzles)
+    for (const day of new Set(puzzleEvents.map((e) => e.gameId))) {
+      const ev = puzzleEvents.filter((e) => e.gameId === day)
+      perGame.push({ gameId: day, at: ev[0].at, events: ev })
+    }
     const all: SkillEvent[] = perGame.flatMap((p) => p.events)
     const scores = scoreSkills(all)
     const weakest = weakestSkills(scores)
-    const counted = perGame.filter((p) => p.events.length > 0).length
-    return { perGame, all, scores, weakest, counted }
-  }, [games])
+    const counted = perGame.filter((p) => p.events.length > 0 && !p.gameId.startsWith('puzzles:')).length
+    const puzzleCount = puzzles.length
+    return { perGame, all, scores, weakest, counted, puzzleCount }
+  }, [games, puzzles])
 
   const pending = games?.filter(needsAnalysis) ?? []
 
@@ -75,7 +88,7 @@ export default function SkillsView({ onOpenReview, onPlay }: { onOpenReview: (id
     return { e, sentence: weaknessSentence(s, text, `${moveLabel(e.ply, e.san)} on ${shortDate(e.at)}`) }
   }
 
-  const empty = data.counted === 0
+  const empty = data.counted === 0 && data.puzzleCount === 0
 
   return (
     <div className="skills">
@@ -84,7 +97,7 @@ export default function SkillsView({ onOpenReview, onPlay }: { onOpenReview: (id
         <p className="muted small">
           {empty
             ? 'Play a game with coaching on (Hints or Guided), or review a game, and your skill profile appears here.'
-            : `Based on ${data.counted} game${data.counted === 1 ? '' : 's'} and ${new Set(data.all.map((e) => `${e.gameId}:${e.ply}`)).size} of your moves. Recent games count more.`}
+            : `Based on ${data.counted} game${data.counted === 1 ? '' : 's'}${data.puzzleCount ? ` and ${data.puzzleCount} puzzle${data.puzzleCount === 1 ? '' : 's'}` : ''}. Recent results count more. Tactics include threats you defended and tactics you found.`}
         </p>
         {pending.length > 0 && (
           <div className="row wrap analyse-row">
@@ -136,9 +149,16 @@ export default function SkillsView({ onOpenReview, onPlay }: { onOpenReview: (id
                         <span className="weak-score">{w.score}</span>
                       </p>
                       <p className="small">{ex.sentence}</p>
-                      <button type="button" className="small-btn" onClick={() => onOpenReview(ex.e.gameId, ex.e.ply + 1)}>
-                        <MoveBadge cls={ex.e.cls} /> Show me this position
-                      </button>
+                      <div className="row wrap">
+                        <button type="button" className="small-btn" onClick={() => onOpenReview(ex.e.gameId, ex.e.ply + 1)}>
+                          <MoveBadge cls={ex.e.cls} /> Show me this position
+                        </button>
+                        {MOTIF_THEMES[w.skill] && (
+                          <a className="small-btn accent link-btn" href={`#/train/theme/${MOTIF_THEMES[w.skill][0]}`}>
+                            Train this
+                          </a>
+                        )}
+                      </div>
                     </li>
                   )
                 })}

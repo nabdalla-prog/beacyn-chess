@@ -207,12 +207,19 @@ desktop (1440×900) sizes, committed.
   ECO opening name with how long each side stayed in theory, PGN import
   (paste or file), recent games list, hash routes so the back button works.
   84 unit tests, 16 e2e runs.
-- **M4 — done locally (2026-10-15), not yet released.** Skill events from
+- **M4 — done (2026-10-15).** Skill events from
   every coached or reviewed user move, recency-weighted scores for seven
   skills plus five tactical motifs, radar chart, per-skill trend lines,
   weakest three with a real example each (distinct positions, "Show me this
   position" opens the review on that move), "Analyse them now" for games
-  without verdicts. 102 unit tests, 18 e2e runs. Next: M5.
+  without verdicts. 102 unit tests, 18 e2e runs.
+- **M5 — done locally (2026-10-15), not yet released.** Tactic scores now
+  count successes (tactics found, real threats defended, clean puzzle
+  solves). Curated Lichess puzzle set (5,309 puzzles, 9 themes × 6 rating
+  bands, lazy-loaded), puzzles from the user's own mistakes, SM-2 spaced
+  repetition for missed puzzles, puzzle rating, daily plan, Train page with
+  hint ladder and step-through solutions. 139 unit tests, 22 e2e runs.
+  Next: M6.
 
 ## Risks
 
@@ -273,10 +280,36 @@ desktop (1440×900) sizes, committed.
   trouble for time use, and blunders/missed wins. Moves played after the hint
   ladder showed the answer (level 3+) are left out. Imported games have no
   time data, so they don't count toward time use.
-- Known bias: motif scores mostly see mistakes (a defended threat leaves no
-  trace), so they run lower than phase scores. They're shown separately
-  ("Tactics by motif") and the weakest list still compares them, because a
-  repeated motif mistake is exactly what training (M5) should target.
+- Tactic scores count successes as well as mistakes (fixed in M5; before,
+  only mistakes left a trace, so motif scores ran low). Each user move gets
+  tactic tags, all board- or engine-verified:
+  - **found**: the engine's top move, a detector names the tactic (fork,
+    pin/skewer, discovered attack, winning a loose piece, mate) and the
+    engine's line wins ≥ 2 pawns of material (or mates);
+  - **defended**: before the move the opponent had a real threat — a piece
+    they could win by static exchange (≥ 2 pawns), a mate in one, or a safe
+    fork of the king or a piece — the move kept the evaluation (not an
+    error) and the threat is gone afterwards (so the same lingering threat
+    isn't credited every move);
+  - **missed / failed defense**: the existing error concepts.
+  Puzzle results also feed the motifs: a clean solve (first try, no hint) is
+  a success, anything else a miss. Each day's puzzles count as one "game" for
+  recency weighting, and puzzle misses are never used as example positions.
+  Verdicts stored before M5 have no tags and keep the old concept mapping.
+- Puzzles: the Lichess puzzle database (CC0) is streamed once through
+  `scripts/build-puzzles.mjs` (300 MB compressed in, 1.1 MB out). Filters:
+  rating deviation ≤ 90, popularity ≥ 85, ≥ 500 plays, ≤ 8 plies, every move
+  re-checked with chess.js; 100 per theme × band chosen by hash of the id
+  (reproducible). Only 9 trapped-piece puzzles pass the filters below 800.
+  Any checkmating move is accepted (like Lichess); own-mistake puzzles also
+  accept any move the engine rates Good or better.
+- SM-2 grading: clean solve 5, hint level 1 → 4, level 2 → 3; any wrong move,
+  the arrow hint or a shown solution counts as not remembered (card resets).
+  Missed puzzles get a card; clean first solves don't need one.
+- Daily plan: missed puzzles due today (≤ 10), own mistakes (≤ 5), up to
+  two themed sets only for weak skills puzzles really train (motifs; blunders
+  → loose pieces; calculation → mate in 2), topped up with general tactics,
+  and one game. Openings/endgames get no themed puzzles — their drills are M6.
 - PGN import treats files as untrusted: 100 KB / 300-move limits, friendly
   error messages, first game of multi-game files, only moves, result, date
   and a cleaned opponent name are kept (comments and other tags dropped),

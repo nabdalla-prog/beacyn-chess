@@ -6,14 +6,17 @@ import { useCoach } from './ui/useCoach'
 import { getGame, type Settings } from './storage/db'
 import type { GameRecord } from './game/session'
 import { ImportPgn, RecentGames } from './ui/HomeExtras'
+import type { TrainRoute } from './ui/TrainView'
+import { THEMES as PUZZLE_THEMES, type Theme } from './training/puzzles'
 import { ThemeIcon } from './ui/icons'
 import logoMark from './assets/beacyn-mark-dark-bg.svg'
 
 // The review screen (and its chart and opening data) loads only when needed.
 const ReviewView = lazy(() => import('./ui/ReviewView'))
 const SkillsView = lazy(() => import('./ui/SkillsView'))
+const TrainView = lazy(() => import('./ui/TrainView'))
 
-type Route = { page: 'home' } | { page: 'skills' } | { page: 'review'; id: string; ply: number | null }
+type Route = { page: 'home' } | { page: 'skills' } | { page: 'review'; id: string; ply: number | null } | { page: 'train'; train: TrainRoute }
 
 /** Tiny hash router: "#/review/<gameId>[/<ply>]", "#/skills" or home. Keeps the back button working. */
 function useHashRoute(): Route {
@@ -27,6 +30,14 @@ function useHashRoute(): Route {
   const m = /^#\/review\/([\w-]+)(?:\/(\d+))?$/.exec(hash)
   if (m) return { page: 'review', id: m[1], ply: m[2] != null ? Number(m[2]) : null }
   if (hash === '#/skills') return { page: 'skills' }
+  const t = /^#\/train(?:\/(theme|puzzle)\/(\w+)(?:\/(\d)\/(\w+))?)?$/.exec(hash)
+  if (t) {
+    const theme = t[2] as Theme
+    if (t[1] && !(PUZZLE_THEMES as readonly string[]).includes(theme)) return { page: 'train', train: { kind: 'home' } }
+    if (t[1] === 'theme') return { page: 'train', train: { kind: 'theme', theme } }
+    if (t[1] === 'puzzle' && t[3] && t[4]) return { page: 'train', train: { kind: 'puzzle', theme, band: Number(t[3]), id: t[4] } }
+    return { page: 'train', train: { kind: 'home' } }
+  }
   return { page: 'home' }
 }
 
@@ -95,12 +106,16 @@ export default function App() {
         <a className="brand" href={import.meta.env.BASE_URL}>
           <img className="brand-mark" src={logoMark} alt="" width="34" height="34" />
           <span className="wordmark">
-            <span className="wm-strong">Beacyn</span> Chess
+            <span className="wm-strong">Beacyn</span>
+            <span className="wm-rest"> Chess</span>
           </span>
         </a>
         <nav className="topnav" aria-label="Main">
           <a href="#/" aria-current={route.page === 'home' ? 'page' : undefined} onClick={(e) => (e.preventDefault(), goHome())}>
             Play
+          </a>
+          <a href="#/train" aria-current={route.page === 'train' ? 'page' : undefined} onClick={() => (navigatedInApp = true)}>
+            Train
           </a>
           <a href="#/skills" aria-current={route.page === 'skills' ? 'page' : undefined} onClick={() => (navigatedInApp = true)}>
             Skills
@@ -125,6 +140,17 @@ export default function App() {
         ) : route.page === 'skills' ? (
           <Suspense fallback={<p className="muted center">Loading…</p>}>
             <SkillsView onOpenReview={openReview} onPlay={goHome} />
+          </Suspense>
+        ) : route.page === 'train' ? (
+          <Suspense fallback={<p className="muted center">Loading…</p>}>
+            <TrainView
+              key={JSON.stringify(route.train)}
+              route={route.train}
+              onPlay={goHome}
+              onHome={() => {
+                location.hash = '#/train'
+              }}
+            />
           </Suspense>
         ) : play.game ? (
           <GameView

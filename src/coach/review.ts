@@ -62,6 +62,19 @@ export interface GameReview {
   series: { ply: number; white: number; score: Score }[]
 }
 
+// buildReview re-runs as analysis fills in; remember explanations already built.
+const explainCache = new Map<string, Explanation>()
+function explainCached(input: Parameters<typeof explainMove>[0]): Explanation {
+  const key = `${input.fenBefore}|${input.uci}|${JSON.stringify(input.before[0] ?? null)}|${JSON.stringify(input.after[0] ?? null)}`
+  let e = explainCache.get(key)
+  if (!e) {
+    e = explainMove(input)
+    explainCache.set(key, e)
+    if (explainCache.size > 3000) explainCache.delete(explainCache.keys().next().value!)
+  }
+  return { ...e, ply: input.ply }
+}
+
 const emptyCounts = () => Object.fromEntries(CLASSES.map((c) => [c, 0])) as Record<MoveClass, number>
 
 /**
@@ -88,7 +101,7 @@ export function buildReview(game: GameRecord, evals: (InfoLine[] | null | undefi
     if (!before || !after) break
     const fenBefore = replay(game, i).fen()
     const m = game.moves[i]
-    const e = explainMove({ fenBefore, uci: m.uci, ply: i, before, after })
+    const e = explainCached({ fenBefore, uci: m.uci, ply: i, before, after })
     const color = e.color
     const winBefore = winPercent(e.scoreBefore)
     const winAfter = winPercent(e.scoreAfter)

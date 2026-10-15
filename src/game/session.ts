@@ -3,6 +3,7 @@
 import { Chess, type Move, type Square } from 'chess.js'
 import type { MoveClass } from '../coach/classify'
 import type { StoredEval } from '../coach/review'
+import type { TacticTag } from '../coach/tactics'
 
 export type Color = 'w' | 'b'
 
@@ -45,6 +46,8 @@ export interface MoveReview {
   concepts: string[]
   /** The coach's one-line explanation, kept so the skill profile can quote real examples. */
   text?: string
+  /** Tactics found, defended, missed or failed on this move (newer verdicts only). */
+  tags?: TacticTag[]
 }
 
 export type CoachMode = 'silent' | 'hints' | 'guided'

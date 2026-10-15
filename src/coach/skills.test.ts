@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Chess } from 'chess.js'
 import { newGame, type GameRecord, type MoveRecord, type MoveReview } from '../game/session'
-import { eventsFromGame, isSharp, phaseOf, RECENCY, scoreSkills, skillTrend, weakestSkills, weaknessSentence, type SkillEvent } from './skills'
+import { eventsFromGame, eventsFromPuzzles, isSharp, phaseOf, RECENCY, scoreSkills, skillTrend, weakestSkills, weaknessSentence, type SkillEvent } from './skills'
 
 const rv = (cls: MoveReview['cls'], concepts: string[] = [], loss = cls === 'blunder' ? 30 : cls === 'mistake' ? 15 : 0, best?: string): MoveReview => ({ cls, loss, concepts, best, text: `${cls} text` })
 
@@ -60,7 +60,7 @@ describe('eventsFromGame', () => {
   })
 })
 
-const E = (skill: SkillEvent['skill'], ok: boolean, gameId: string, at: number, loss = ok ? 0 : 20): SkillEvent => ({ skill, ok, gameId, at, ply: 0, san: 'x', cls: ok ? 'good' : 'mistake', loss })
+const E = (skill: SkillEvent['skill'], ok: boolean, gameId: string, at: number, loss = ok ? 0 : 20): SkillEvent => ({ skill, ok, gameId, at, ply: 0, san: 'x', cls: ok ? 'good' : 'mistake', loss, source: 'game' })
 
 describe('scoreSkills', () => {
   it('needs enough events before giving a score', () => {
@@ -130,5 +130,65 @@ describe('skillTrend', () => {
     expect(t.map((p) => p.at)).toEqual([1, 2])
     expect(t[0].score).toBe(0)
     expect(t[1].score).toBeGreaterThan(50)
+  })
+})
+
+describe('tactic successes count', () => {
+  const tagged = (tags: MoveReview['tags']): MoveReview => ({ cls: 'best', loss: 0, concepts: [], tags })
+  it('a found tactic and a defended threat are successes; a failed defense is not', () => {
+    const g = game('t', 1, [
+      ['e2e4', 'e4', 'user', tagged([{ motif: 'fork', outcome: 'found' }])],
+      ['e7e5', 'e5', 'engine'],
+      ['g1f3', 'Nf3', 'user', tagged([{ motif: 'hanging', outcome: 'defended' }])],
+      ['b8c6', 'Nc6', 'engine'],
+      ['f3g5', 'Ng5', 'user', { ...tagged([{ motif: 'hanging', outcome: 'failed-defense' }]), cls: 'blunder', loss: 30 }],
+    ])
+    const ev = eventsFromGame(g)
+    expect(ev.filter((e) => e.skill === 'motif:fork').map((e) => [e.ok, e.outcome])).toEqual([[true, 'found']])
+    expect(ev.filter((e) => e.skill === 'motif:hanging').map((e) => [e.ok, e.outcome])).toEqual([
+      [true, 'defended'],
+      [false, 'failed-defense'],
+    ])
+    expect(ev.filter((e) => e.skill === 'tactics').map((e) => e.ok)).toEqual([true, true, false])
+  })
+  it('older verdicts without tags still use the concept mapping', () => {
+    const g = game('o', 1, [['e2e4', 'e4', 'user', rv('blunder', ['hanging-piece'])]])
+    expect(eventsFromGame(g).filter((e) => e.skill === 'motif:hanging').map((e) => e.ok)).toEqual([false])
+  })
+  it('with successes counted, a mostly-careful player scores well on a motif', () => {
+    const moves: [string, string, 'user' | 'engine', MoveReview?][] = []
+    // 4 defended threats and 1 failure over a game: score should be 80, not 0.
+    const seq = ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4', 'g8f6', 'd2d3', 'f8c5', 'c2c3', 'd7d6']
+    seq.forEach((u, i) => moves.push([u, u, i % 2 ? 'engine' : 'user', i % 2 ? undefined : tagged([{ motif: 'hanging', outcome: i === 8 ? 'failed-defense' : 'defended' }])]))
+    expect(scoreSkills(eventsFromGame(game('m', 1, moves)))['motif:hanging'].score).toBe(80)
+  })
+})
+
+describe('puzzles feed tactic scores', () => {
+  const day = Date.UTC(2026, 9, 15)
+  it('maps Lichess themes to motifs; clean solves are successes', () => {
+    const ev = eventsFromPuzzles([
+      { puzzleId: 'a', themes: ['fork', 'middlegame', 'short'], clean: true, at: day },
+      { puzzleId: 'b', themes: ['backRankMate', 'mateIn2'], clean: false, at: day },
+    ])
+    expect(ev.filter((e) => e.skill === 'motif:fork').map((e) => e.ok)).toEqual([true])
+    expect(ev.filter((e) => e.skill === 'motif:mate').map((e) => e.ok)).toEqual([false])
+    expect(ev.filter((e) => e.skill === 'tactics')).toHaveLength(2)
+    expect(ev.every((e) => e.source === 'puzzle' && e.gameId === 'puzzles:2026-10-15')).toBe(true)
+  })
+  it('solved puzzles raise the motif score', () => {
+    const fromGames = Array.from({ length: 3 }, () => E('motif:fork', false, 'g', 1))
+    const before = scoreSkills(fromGames)['motif:fork'].score
+    const puzzles = eventsFromPuzzles(Array.from({ length: 6 }, (_, i) => ({ puzzleId: `p${i}`, themes: ['fork'], clean: true, at: day })))
+    const after = scoreSkills([...fromGames, ...puzzles])['motif:fork'].score
+    expect(before).toBe(0)
+    expect(after!).toBeGreaterThan(50)
+  })
+  it('puzzle misses are never used as an example position', () => {
+    const puzzles = eventsFromPuzzles(Array.from({ length: 5 }, (_, i) => ({ puzzleId: `p${i}`, themes: ['pin'], clean: false, at: day })))
+    const s = scoreSkills(puzzles)['motif:pin']
+    expect(s.score).toBe(0)
+    expect(s.example).toBeNull()
+    expect(weakestSkills(scoreSkills(puzzles))).toEqual([])
   })
 })

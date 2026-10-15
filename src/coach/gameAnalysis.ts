@@ -24,7 +24,7 @@ export function withAnalysis(game: GameRecord, evals: (InfoLine[] | null)[]): Ga
       const r = review.moves[i]
       if (m.by !== 'user' || m.review || !r) return m
       const e = r.explanation
-      return { ...m, review: { cls: e.cls, loss: Math.round(e.loss * 10) / 10, best: e.bestUci, concepts: e.concepts, text: e.text } }
+      return { ...m, review: { cls: e.cls, loss: Math.round(e.loss * 10) / 10, best: e.bestUci, concepts: e.concepts, text: e.text, tags: e.tags } }
     })
   }
   return { ...game, moves, analysis: { depth: REVIEW_DEPTH, evals: stored } }

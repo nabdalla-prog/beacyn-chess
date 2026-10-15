@@ -5,6 +5,7 @@ import { Chess, type Square } from 'chess.js'
 import { isError, type MoveClass } from './classify'
 import { VALUE } from './board'
 import { replay, type GameRecord } from '../game/session'
+import type { Motif, Outcome } from './tactics'
 
 export type SkillId =
   | 'tactics'
@@ -39,7 +40,29 @@ export const SKILL_INFO: Record<SkillId, { name: string; noun: string }> = {
   'motif:mate': { name: 'Checkmate patterns', noun: 'mating moments' },
 }
 
-/** Which detector concepts count toward which tactical motif. */
+const MOTIF_SKILL: Record<Motif, SkillId> = {
+  hanging: 'motif:hanging',
+  fork: 'motif:fork',
+  pin: 'motif:pin',
+  discovered: 'motif:discovered',
+  mate: 'motif:mate',
+}
+
+/** Lichess puzzle themes that train each motif. */
+export const THEME_MOTIF: Record<string, Motif> = {
+  hangingPiece: 'hanging',
+  trappedPiece: 'hanging',
+  fork: 'fork',
+  pin: 'pin',
+  skewer: 'pin',
+  discoveredAttack: 'discovered',
+  mateIn1: 'mate',
+  mateIn2: 'mate',
+  mateIn3: 'mate',
+  backRankMate: 'mate',
+}
+
+/** Older verdicts without tactic tags: which detector concepts count toward which motif. */
 const CONCEPT_MOTIF: Record<string, SkillId> = {
   'hanging-piece': 'motif:hanging',
   'missed-threat': 'motif:hanging',
@@ -61,6 +84,10 @@ const CONCEPT_MOTIF: Record<string, SkillId> = {
 export interface SkillEvent {
   skill: SkillId
   ok: boolean
+  /** Where it came from. Only game events can be shown as an example position. */
+  source: 'game' | 'puzzle'
+  /** For tactics: found / defended / missed / failed-defense (or a puzzle result). */
+  outcome?: Outcome
   gameId: string
   ply: number
   at: number
@@ -115,19 +142,28 @@ export function eventsFromGame(game: GameRecord): SkillEvent[] {
   game.moves.forEach((m, ply) => {
     const r = m.review
     if (m.by === 'user' && r && (m.hintLevel ?? 0) < 3) {
-      const base = { gameId: game.id, ply, at: game.startedAt, san: m.san, cls: r.cls, loss: r.loss }
+      const base = { gameId: game.id, ply, at: game.startedAt, san: m.san, cls: r.cls, loss: r.loss, source: 'game' as const }
       const bad = isError(r.cls)
-      const add = (skill: SkillId, ok: boolean) => out.push({ ...base, skill, ok })
+      const add = (skill: SkillId, ok: boolean, outcome?: Outcome) => out.push({ ...base, skill, ok, outcome })
 
       const phase = phaseOf(chess)
       add(phase === 'opening' ? 'openings' : phase === 'endgame' ? 'endgames' : 'middlegame', !bad)
       add('blunders', r.cls !== 'blunder' && r.cls !== 'missed-win')
       if (isSharp(chess, r.best)) add('calculation', !bad)
 
-      const motifs = new Set(r.concepts.map((c) => CONCEPT_MOTIF[c]).filter(Boolean))
-      for (const motif of motifs) {
-        add(motif, !bad)
-        add('tactics', !bad)
+      if (r.tags) {
+        // Successes count too: tactics the user found and real threats they defended.
+        for (const t of r.tags) {
+          const ok = t.outcome === 'found' || t.outcome === 'defended'
+          add(MOTIF_SKILL[t.motif], ok, t.outcome)
+          add('tactics', ok, t.outcome)
+        }
+      } else {
+        const motifs = new Set(r.concepts.map((c) => CONCEPT_MOTIF[c]).filter(Boolean))
+        for (const motif of motifs) {
+          add(motif, !bad)
+          add('tactics', !bad)
+        }
       }
 
       if (m.timeMs > 0 && !game.imported) {
@@ -138,6 +174,32 @@ export function eventsFromGame(game: GameRecord): SkillEvent[] {
     }
     chess.move({ from: m.uci.slice(0, 2), to: m.uci.slice(2, 4), promotion: m.uci[4] })
   })
+  return out
+}
+
+export interface PuzzleResult {
+  puzzleId: string
+  themes: string[]
+  /** Solved without a wrong move, hint or shown answer. */
+  clean: boolean
+  at: number
+}
+
+/**
+ * Puzzle results feed the tactical motifs. Each day's puzzles count as one
+ * "game" for recency weighting, so a long puzzle session doesn't drown out play.
+ */
+export function eventsFromPuzzles(results: PuzzleResult[]): SkillEvent[] {
+  const out: SkillEvent[] = []
+  for (const r of results) {
+    const motifs = new Set(r.themes.map((t) => THEME_MOTIF[t]).filter(Boolean))
+    const day = new Date(r.at).toISOString().slice(0, 10)
+    const base = { gameId: `puzzles:${day}`, ply: 0, at: r.at, san: '', cls: (r.clean ? 'best' : 'mistake') as MoveClass, loss: r.clean ? 0 : 10, source: 'puzzle' as const }
+    for (const m of motifs) {
+      out.push({ ...base, skill: MOTIF_SKILL[m], ok: r.clean, outcome: r.clean ? 'found' : 'missed' })
+      out.push({ ...base, skill: 'tactics', ok: r.clean, outcome: r.clean ? 'found' : 'missed' })
+    }
+  }
   return out
 }
 
@@ -172,7 +234,7 @@ export function scoreSkills(events: SkillEvent[]): Record<SkillId, SkillScore> {
       if (e.ok) good += weight
     }
     const mistakes = ev
-      .filter((e) => !e.ok)
+      .filter((e) => !e.ok && e.source === 'game')
       .sort((a, b) => b.loss - a.loss || b.at - a.at)
       .slice(0, 10)
     const min = skill.startsWith('motif:') ? MIN_EVENTS.motif : MIN_EVENTS.radar

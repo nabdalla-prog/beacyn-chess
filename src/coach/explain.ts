@@ -4,6 +4,7 @@
 import { Chess, type Color, type Move, type Square } from 'chess.js'
 import { formatScore, type InfoLine, type Score } from '../engine/uci'
 import { classifyMove, isError, type MoveClass } from './classify'
+import { tacticTags, type TacticTag } from './tactics'
 import {
   backRankWeak,
   CENTER,
@@ -89,6 +90,8 @@ export interface Explanation {
   bestSan?: string
   text: string
   concepts: Concept[]
+  /** Found / defended / missed tactics, for the skill profile. */
+  tags: TacticTag[]
   frames: Frame[]
   lines: Line[]
 }
@@ -376,6 +379,17 @@ export function explainMove({ fenBefore, uci, ply, before, after }: ExplainInput
     if (refutation && refutation.san.length) lines.push({ label: 'Engine’s line from here', fen: fenAfter, uci: refutation.moves.map(toUci), san: refutation.san })
   }
 
+  const tags = tacticTags({
+    before: chessBefore,
+    move,
+    after: chessAfter,
+    cls,
+    isTop,
+    hadMate: bestScore.type === 'mate' && bestScore.value > 0,
+    line: [uci, ...(after[0]?.pv ?? [])],
+    concepts,
+  })
+
   return {
     ply,
     uci,
@@ -389,6 +403,7 @@ export function explainMove({ fenBefore, uci, ply, before, after }: ExplainInput
     bestSan,
     text,
     concepts,
+    tags,
     frames,
     lines,
   }
