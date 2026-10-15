@@ -96,7 +96,7 @@ export function useCoach(play: Play) {
       if (latestGame.current?.moves[ply]?.uci !== game.moves[ply].uci) return
       const e = explainMove({ fenBefore, uci: game.moves[ply].uci, ply, before, after })
       setFeedback((f) => ({ ...f, [ply]: e }))
-      play.annotate(ply, { cls: e.cls, loss: Math.round(e.loss * 10) / 10, best: e.bestUci, concepts: e.concepts })
+      play.annotate(ply, { cls: e.cls, loss: Math.round(e.loss * 10) / 10, best: e.bestUci, concepts: e.concepts, text: e.text })
       if (after[0]) setEvalWhite(toWhitePov(after[0].score, afterChess.turn()))
     })
     // Keep these searches running across re-renders; they are cheap and cached.

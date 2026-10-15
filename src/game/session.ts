@@ -43,6 +43,8 @@ export interface MoveReview {
   /** Engine's best move (UCI) in the position before. */
   best?: string
   concepts: string[]
+  /** The coach's one-line explanation, kept so the skill profile can quote real examples. */
+  text?: string
 }
 
 export type CoachMode = 'silent' | 'hints' | 'guided'

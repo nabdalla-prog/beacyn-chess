@@ -11,9 +11,12 @@ import logoMark from './assets/beacyn-mark-dark-bg.svg'
 
 // The review screen (and its chart and opening data) loads only when needed.
 const ReviewView = lazy(() => import('./ui/ReviewView'))
+const SkillsView = lazy(() => import('./ui/SkillsView'))
 
-/** Tiny hash router: "#/review/<gameId>" or home. Keeps the browser back button working. */
-function useHashRoute(): { review: string | null } {
+type Route = { page: 'home' } | { page: 'skills' } | { page: 'review'; id: string; ply: number | null }
+
+/** Tiny hash router: "#/review/<gameId>[/<ply>]", "#/skills" or home. Keeps the back button working. */
+function useHashRoute(): Route {
   const hash = useSyncExternalStore(
     (cb) => {
       window.addEventListener('hashchange', cb)
@@ -21,19 +24,28 @@ function useHashRoute(): { review: string | null } {
     },
     () => location.hash,
   )
-  const m = /^#\/review\/([\w-]+)$/.exec(hash)
-  return { review: m ? m[1] : null }
+  const m = /^#\/review\/([\w-]+)(?:\/(\d+))?$/.exec(hash)
+  if (m) return { page: 'review', id: m[1], ply: m[2] != null ? Number(m[2]) : null }
+  if (hash === '#/skills') return { page: 'skills' }
+  return { page: 'home' }
 }
 
-const openReview = (id: string) => {
-  location.hash = `#/review/${id}`
+/** True once the user has navigated inside the app, so "Back" can use browser history. */
+let navigatedInApp = false
+const openReview = (id: string, ply?: number) => {
+  navigatedInApp = true
+  location.hash = `#/review/${id}${ply != null ? `/${ply}` : ''}`
+}
+const back = () => {
+  if (navigatedInApp) history.back()
+  else goHome()
 }
 const goHome = () => {
   if (location.hash) history.pushState(null, '', location.pathname + location.search)
   window.dispatchEvent(new HashChangeEvent('hashchange'))
 }
 
-function ReviewRoute({ id }: { id: string }) {
+function ReviewRoute({ id, ply }: { id: string; ply: number | null }) {
   const [game, setGame] = useState<GameRecord | null | undefined>(undefined)
   useEffect(() => {
     void getGame(id).then((g) => setGame(g))
@@ -50,7 +62,7 @@ function ReviewRoute({ id }: { id: string }) {
     )
   return (
     <Suspense fallback={<p className="muted center">Loading review…</p>}>
-      <ReviewView key={game.id} game={game} onBack={goHome} />
+      <ReviewView key={`${game.id}/${ply}`} game={game} initialPly={ply} onBack={back} />
     </Suspense>
   )
 }
@@ -86,6 +98,14 @@ export default function App() {
             <span className="wm-strong">Beacyn</span> Chess
           </span>
         </a>
+        <nav className="topnav" aria-label="Main">
+          <a href="#/" aria-current={route.page === 'home' ? 'page' : undefined} onClick={(e) => (e.preventDefault(), goHome())}>
+            Play
+          </a>
+          <a href="#/skills" aria-current={route.page === 'skills' ? 'page' : undefined} onClick={() => (navigatedInApp = true)}>
+            Skills
+          </a>
+        </nav>
         <button
           type="button"
           className="icon-btn"
@@ -100,8 +120,12 @@ export default function App() {
       <main>
         {!play.loaded ? (
           <p className="muted center">Loading…</p>
-        ) : route.review ? (
-          <ReviewRoute id={route.review} />
+        ) : route.page === 'review' ? (
+          <ReviewRoute id={route.id} ply={route.ply} />
+        ) : route.page === 'skills' ? (
+          <Suspense fallback={<p className="muted center">Loading…</p>}>
+            <SkillsView onOpenReview={openReview} onPlay={goHome} />
+          </Suspense>
         ) : play.game ? (
           <GameView
             play={play}

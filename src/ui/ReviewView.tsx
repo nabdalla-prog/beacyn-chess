@@ -35,11 +35,11 @@ interface Retry {
 
 type View = { kind: 'better' } | { kind: 'line'; line: Line; fens: string[]; index: number } | null
 
-export default function ReviewView({ game: initial, onBack }: { game: GameRecord; onBack: () => void }) {
+export default function ReviewView({ game: initial, initialPly = null, onBack }: { game: GameRecord; initialPly?: number | null; onBack: () => void }) {
   const [game, setGame] = useState(initial)
-  const { review, evals, opening, progress, error } = useReview(initial, (g) => setGame((cur) => ({ ...cur, analysis: g.analysis })))
+  const { review, evals, opening, progress, error } = useReview(initial, (g) => setGame((cur) => ({ ...cur, analysis: g.analysis, moves: g.moves })))
   const total = game.moves.length
-  const [cursor, setCursor] = useState(total)
+  const [cursor, setCursor] = useState(initialPly != null ? Math.min(total, Math.max(0, initialPly)) : total)
   const [view, setView] = useState<View>(null)
   const [retry, setRetry] = useState<Retry | null>(null)
   const [boardKey, setBoardKey] = useState(0)

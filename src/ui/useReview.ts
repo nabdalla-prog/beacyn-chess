@@ -1,18 +1,15 @@
 // Runs the engine over every position of a finished game (reusing anything
 // already analysed live), stores the result on the game, and builds the review.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { analyse } from '../coach/analyst'
 import { identifyOpening, loadBook, type OpeningInfo } from '../coach/openings'
-import { buildReview, fromStored, REVIEW_DEPTH, toStored, type StoredEval } from '../coach/review'
+import { buildReview } from '../coach/review'
+import { initialEvals, runAnalysis, withAnalysis } from '../coach/gameAnalysis'
 import type { InfoLine } from '../engine/uci'
-import { replay, type GameRecord } from '../game/session'
-import { saveGame } from '../storage/db'
+import type { GameRecord } from '../game/session'
+import { getGame, saveGame } from '../storage/db'
 
 export function useReview(game: GameRecord, onSaved?: (g: GameRecord) => void) {
-  const total = game.moves.length + 1
-  const [evals, setEvals] = useState<(InfoLine[] | null)[]>(() =>
-    Array.from({ length: total }, (_, i) => (game.analysis?.depth === REVIEW_DEPTH ? fromStored(game.analysis.evals[i]) : null)),
-  )
+  const [evals, setEvals] = useState<(InfoLine[] | null)[]>(() => initialEvals(game))
   const [opening, setOpening] = useState<OpeningInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const onSavedRef = useRef(onSaved)
@@ -32,54 +29,30 @@ export function useReview(game: GameRecord, onSaved?: (g: GameRecord) => void) {
 
   // Analyse missing positions one at a time, saving progress as we go.
   useEffect(() => {
-    let alive = true
-    let cancel: (() => void) | null = null
-    const current = evals.slice()
-    void (async () => {
-      let sinceSave = 0
-      for (let i = 0; i < total && alive; i++) {
-        if (current[i]) continue
-        const pos = replay(game, i)
-        let lines: InfoLine[] | null
-        if (pos.isGameOver()) lines = []
-        else {
-          const a = analyse(pos.fen(), { depth: REVIEW_DEPTH, multipv: 1 })
-          cancel = a.cancel
-          try {
-            lines = await a.promise
-          } catch (e) {
-            if (alive) setError(e instanceof Error ? e.message : String(e))
-            return
-          }
-        }
-        if (!alive || !lines) return
-        current[i] = lines
-        setEvals(current.slice())
-        if (++sinceSave >= 8 || i === total - 1) {
-          sinceSave = 0
-          void persist(current)
-        }
-      }
-      if (alive && current.every(Boolean) && game.analysis?.depth !== REVIEW_DEPTH) void persist(current)
-    })()
-
-    async function persist(e: (InfoLine[] | null)[]) {
-      // undefined = not analysed yet, null = no engine line (game over).
-      const stored: (StoredEval | null | undefined)[] = e.map((l) => (l ? toStored(l) : undefined))
-      const next: GameRecord = { ...game, analysis: { depth: REVIEW_DEPTH, evals: stored } }
+    const start = initialEvals(game)
+    if (start.every(Boolean)) return
+    let sinceSave = 0
+    const persist = async (e: (InfoLine[] | null)[]) => {
+      // Merge into the latest saved copy so retries recorded meanwhile aren't lost.
+      const latest = (await getGame(game.id)) ?? game
+      const next = withAnalysis(latest, e)
       await saveGame(next)
       onSavedRef.current?.(next)
     }
-
-    return () => {
-      alive = false
-      cancel?.()
-    }
-    // Run once per game; `evals` is only the starting point.
+    const run = runAnalysis(game, start, (e, i) => {
+      setEvals(e)
+      if (++sinceSave >= 8 || i === e.length - 1) {
+        sinceSave = 0
+        void persist(e)
+      }
+    })
+    run.promise.catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+    return run.cancel
+    // Run once per game.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.id])
 
   const review = useMemo(() => buildReview(game, evals), [game, evals])
   const done = evals.filter(Boolean).length
-  return { review, evals, opening, progress: { done, total }, error }
+  return { review, evals, opening, progress: { done, total: evals.length }, error }
 }

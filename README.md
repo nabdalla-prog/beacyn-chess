@@ -12,8 +12,8 @@ highlights and short notes, finds your weak spots and trains them.
 
 No install, no account, no server — all your data stays in your browser.
 
-> **Status:** early development. Milestones 1–3 (play the coach, live
-> coaching, post-game review) are done. See [PLAN.md](PLAN.md) for the roadmap.
+> **Status:** early development. Milestones 1–4 (play the coach, live
+> coaching, post-game review, skill profile) are done. See [PLAN.md](PLAN.md) for the roadmap.
 
 ## Features so far
 
@@ -50,6 +50,16 @@ No install, no account, no server — all your data stays in your browser.
 - Opening name (ECO) and how long each side stayed in known theory
 - Import games you played elsewhere by pasting PGN or choosing a `.pgn` file
 - Your recent games, saved in this browser
+
+**Skill profile**
+
+- Radar chart of seven skills: tactics, openings, middlegame, endgames,
+  calculation, time use and avoiding blunders (0–100, recent games count more)
+- Tactics broken down by motif: loose pieces, forks, pins and skewers,
+  discovered attacks, checkmate patterns
+- Your three weakest skills, each with one sentence and a real position from
+  your own games — tap to open it in the review
+- Trend lines showing how each skill changes game by game
 
 ## Run locally
 

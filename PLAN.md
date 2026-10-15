@@ -206,7 +206,13 @@ desktop (1440×900) sizes, committed.
   moments with "Retry this position" (hint, show answer, attempts logged),
   ECO opening name with how long each side stayed in theory, PGN import
   (paste or file), recent games list, hash routes so the back button works.
-  84 unit tests, 16 e2e runs. Next: M4.
+  84 unit tests, 16 e2e runs.
+- **M4 — done locally (2026-10-15), not yet released.** Skill events from
+  every coached or reviewed user move, recency-weighted scores for seven
+  skills plus five tactical motifs, radar chart, per-skill trend lines,
+  weakest three with a real example each (distinct positions, "Show me this
+  position" opens the review on that move), "Analyse them now" for games
+  without verdicts. 102 unit tests, 18 e2e runs. Next: M5.
 
 ## Risks
 
@@ -256,6 +262,21 @@ desktop (1440×900) sizes, committed.
 - Opening names: Lichess chess-openings (CC0), built into
   `public/openings.json` by `scripts/build-openings.mjs`, matched by position
   (transpositions count), loaded only on the review screen (~90 KB gzipped).
+- Skill scores are the recency-weighted share of the user's moves in an
+  area that the engine rated Good or better (each older game counts 0.85×
+  the next newer one). A skill needs 5 events (motifs 3) before it gets a
+  score; until then the radar says "no data yet" and draws no fake shape.
+- Skill events come only from stored verdicts: phase (opening = first 12
+  moves; endgame = ≤ 26 points of pieces, or no queens and ≤ 36), sharp
+  positions (best move is a capture or check, or the mover is in check),
+  tactical motifs from detector concepts, rushed errors (< 3 s) and clock
+  trouble for time use, and blunders/missed wins. Moves played after the hint
+  ladder showed the answer (level 3+) are left out. Imported games have no
+  time data, so they don't count toward time use.
+- Known bias: motif scores mostly see mistakes (a defended threat leaves no
+  trace), so they run lower than phase scores. They're shown separately
+  ("Tactics by motif") and the weakest list still compares them, because a
+  repeated motif mistake is exactly what training (M5) should target.
 - PGN import treats files as untrusted: 100 KB / 300-move limits, friendly
   error messages, first game of multi-game files, only moves, result, date
   and a cleaned opponent name are kept (comments and other tags dropped),
