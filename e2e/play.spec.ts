@@ -13,11 +13,11 @@ test('play moves against the coach, take one back, and resign', async ({ page })
 
   await typeMove(page, 'e4')
   // The engine replies (worker loaded, search finished, move applied).
-  await expect(page.getByTestId('move-list').locator('li').first().locator('.move').nth(1)).not.toBeEmpty({ timeout: 30_000 })
+  await expect(page.getByTestId('move-list').locator('[data-san]')).toHaveCount(2, { timeout: 30_000 })
   await expect(page.getByTestId('status')).toContainText('Your move')
 
   await typeMove(page, 'd4')
-  await expect(page.getByTestId('move-list').locator('li').nth(1).locator('.move').nth(1)).not.toBeEmpty({ timeout: 30_000 })
+  await expect(page.getByTestId('move-list').locator('[data-san]')).toHaveCount(4, { timeout: 30_000 })
 
   // Takeback removes the coach reply and our move.
   await page.getByRole('button', { name: /Take back/ }).click()

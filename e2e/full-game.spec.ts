@@ -12,10 +12,10 @@ test('play a full game to the end', async ({ page }) => {
   await page.getByRole('button', { name: 'Start game' }).click()
 
   const status = page.getByTestId('status')
-  const sans = async () =>
-    (await page.locator('[data-testid=move-list] .move').allInnerTexts()).filter((s) => s && s !== '…')
+  const sans = () => page.locator('[data-testid=move-list] [data-san]').evaluateAll((els) => els.map((e) => e.getAttribute('data-san')!))
   const isOver = async () => /won|Draw/.test(await status.innerText())
 
+  let warnings = 0
   let seed = 7
   const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
 
@@ -27,13 +27,26 @@ test('play a full game to the end', async ({ page }) => {
     const before = (await sans()).length
     await page.getByLabel('Type a move').fill(move)
     await page.getByRole('button', { name: 'Play', exact: true }).click()
-    // Wait for the coach's reply or for the game to end.
+    // Guided mode may stop a blunder first; random moves blunder a lot, so insist.
+    const warning = page.getByTestId('warning')
+    // Wait for the coach's reply, a warning, or the end of the game.
     await expect
-      .poll(async () => (await isOver()) || (await sans()).length >= before + 2, { timeout: 30_000 })
+      .poll(async () => (await isOver()) || (await warning.isVisible()) || (await sans()).length >= before + 2, { timeout: 30_000 })
       .toBe(true)
+    if (await warning.isVisible()) {
+      warnings++
+      await page.getByRole('button', { name: 'Play it anyway' }).click()
+      await expect
+        .poll(async () => (await isOver()) || (await sans()).length >= before + 2, { timeout: 30_000 })
+        .toBe(true)
+    }
   }
 
   await expect(status).toContainText(/You won|Coach won|Draw/)
+  // Random moves against a 2500 coach always blunder at some point, so guided mode must have warned.
+  expect(warnings).toBeGreaterThan(0)
+  // Move-quality badges were added to the user's moves.
+  await expect(page.locator('[data-testid=move-list] .badge').first()).toBeVisible()
   await expect(status).toContainText('Coach is now ≈')
   await expect(page.getByRole('button', { name: 'New game' })).toBeVisible()
   // The finished game is recorded and the next game can start.

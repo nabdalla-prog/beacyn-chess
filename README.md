@@ -8,8 +8,8 @@ highlights and short notes, finds your weak spots and trains them.
 
 No install, no account, no server — all your data stays in your browser.
 
-> **Status:** early development. Milestone 1 (play the coach) is done. See
-> [PLAN.md](PLAN.md) for the roadmap.
+> **Status:** early development. Milestones 1–2 (play the coach, live
+> coaching) are done. See [PLAN.md](PLAN.md) for the roadmap.
 
 ## Features so far
 
@@ -21,6 +21,21 @@ No install, no account, no server — all your data stays in your browser.
 - Drag, click or type moves (`e4`, `Nf3`, `O-O`, `g1f3`)
 - Game is saved after every move and resumes after a reload
 - Light and dark themes; works on phones, tablets and desktops
+
+**Live coaching**
+
+- Every move gets a badge: Brilliant, Best, Good, Inaccuracy, Mistake,
+  Blunder or Missed win (colorblind-safe colors, always with a symbol)
+- A one- or two-sentence reason built only from Stockfish and verified board
+  checks: hanging pieces, forks, pins, skewers, discovered attacks, trapped
+  pieces, back-rank weakness, mate threats, missed captures, development,
+  center, castling, open files, passed pawns
+- "See it on the board" draws the threat (orange-red), the better move (blue)
+  and the weak square; "Show me why" steps through the engine's line
+- Four-step hint ladder: where to look → which piece → the move → why
+- Guided mode warns before a blunder ("Wait — check what that move leaves
+  undefended") and lets you pick another move
+- Evaluation bar above the board
 
 ## Run locally
 

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { GameView } from './ui/GameView'
 import { NewGamePanel } from './ui/NewGamePanel'
 import { usePlay } from './ui/usePlay'
+import { useCoach } from './ui/useCoach'
 import type { Settings } from './storage/db'
 import { PieceIcon, ThemeIcon } from './ui/icons'
 
@@ -13,6 +14,7 @@ const THEMES: { value: Settings['theme']; label: string }[] = [
 
 export default function App() {
   const play = usePlay()
+  const coach = useCoach(play)
   const { settings, setSettings } = play
 
   useEffect(() => {
@@ -47,7 +49,7 @@ export default function App() {
         {!play.loaded ? (
           <p className="muted center">Loading…</p>
         ) : play.game ? (
-          <GameView play={play} onNewGame={play.exitGame} />
+          <GameView play={play} coach={coach} onNewGame={play.exitGame} />
         ) : (
           <NewGamePanel profile={play.profile} settings={settings} onSettings={setSettings} onStart={play.start} />
         )}

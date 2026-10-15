@@ -1,6 +1,7 @@
 // Pure game-session logic: the record we store, replaying it with chess.js,
 // game-over detection, takebacks and PGN export.
 import { Chess, type Move, type Square } from 'chess.js'
+import type { MoveClass } from '../coach/classify'
 
 export type Color = 'w' | 'b'
 
@@ -26,7 +27,24 @@ export interface MoveRecord {
   timeMs: number
   /** Mover's remaining clock after the move (timed games only). */
   clockMs?: number
+  /** Coach's verdict on a user move (engine facts only). */
+  review?: MoveReview
+  /** Highest hint level used before this move (1–4). */
+  hintLevel?: number
+  /** The user saw a guided-mode blunder warning and played the move anyway. */
+  warned?: boolean
 }
+
+export interface MoveReview {
+  cls: MoveClass
+  /** Win-probability points lost. */
+  loss: number
+  /** Engine's best move (UCI) in the position before. */
+  best?: string
+  concepts: string[]
+}
+
+export type CoachMode = 'silent' | 'hints' | 'guided'
 
 export type Termination =
   | 'checkmate'
@@ -54,6 +72,7 @@ export interface GameRecord {
   moves: MoveRecord[]
   /** Number of takebacks used (logged, never penalised). */
   takebacks: number
+  coachMode?: CoachMode
   result?: GameResult
   /** Opponent rating after the adaptive adjustment, once finished. */
   ratingAfter?: number

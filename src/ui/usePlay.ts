@@ -1,6 +1,6 @@
 // State and flow for a game against the coach: user moves, engine replies,
 // clocks, takebacks, game end, adaptive strength and persistence.
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Square } from 'chess.js'
 import { Engine } from '../engine/engine'
 import { pickMove, strengthConfig } from '../engine/strength'
@@ -21,6 +21,7 @@ import {
   type GameRecord,
   type GameResult,
   type MoveRecord,
+  type MoveReview,
 } from '../game/session'
 import { pressClock, remaining, startClock, stopClock, type ClockState } from '../game/clock'
 import {
@@ -62,7 +63,20 @@ export function usePlay() {
   const [promotion, setPromotion] = useState<PendingPromotion | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const [, setTick] = useState(0)
+  /** Bumped to make the board re-sync after a move was rejected or cancelled. */
+  const [boardKey, setBoardKey] = useState(0)
+  /** Guided mode is checking the user's move before it is played. */
+  const [checking, setChecking] = useState(false)
   const turnStarted = useRef(Date.now())
+  /** Set by the coach: may veto a user move (guided-mode warning). */
+  const guardRef = useRef<((fenBefore: string, uci: string) => Promise<boolean>) | null>(null)
+  /** Set by the coach: extra facts recorded on the user's next move (hint level used). */
+  const moveMetaRef = useRef<Partial<MoveRecord>>({})
+  /** Latest game state, including coach annotations that arrived after a callback captured `game`. */
+  const latestGame = useRef<GameRecord | null>(null)
+  useLayoutEffect(() => {
+    latestGame.current = game
+  }, [game])
 
   // ---- load saved state ----
   useEffect(() => {
@@ -129,12 +143,13 @@ export function usePlay() {
 
   // ---- applying a move ----
   const commitMove = useCallback(
-    (g: GameRecord, uci: string, by: MoveRecord['by']): GameRecord | null => {
+    (g: GameRecord, uci: string, by: MoveRecord['by'], meta: Partial<MoveRecord> = {}): GameRecord | null => {
+      g = withAnnotations(g, latestGame.current)
       const c = replay(g)
       const mv = tryUci(c, uci)
       if (!mv) return null
       const now = Date.now()
-      const rec: MoveRecord = { san: mv.san, uci: moveToUci(mv), by, timeMs: now - turnStarted.current }
+      const rec: MoveRecord = { ...meta, san: mv.san, uci: moveToUci(mv), by, timeMs: now - turnStarted.current }
       turnStarted.current = now
       let nextClock = clock
       if (g.timeControl && clock) {
@@ -212,7 +227,8 @@ export function usePlay() {
       opponentEngine().newGame()
       setEngineError(null)
       const tc = TIME_CONTROLS[opts.timeControlIndex]?.value ?? null
-      const g = newGame({ userColor: opts.userColor, rating: opts.rating, timeControl: tc })
+      const g: GameRecord = { ...newGame({ userColor: opts.userColor, rating: opts.rating, timeControl: tc }), coachMode: settings.coachMode }
+      moveMetaRef.current = {}
       turnStarted.current = Date.now()
       setClock(tc ? startClock(tc, 'w', Date.now()) : null)
       setPromotion(null)
@@ -225,27 +241,61 @@ export function usePlay() {
         void saveProfile(p)
       }
     },
-    [profile],
+    [profile, settings.coachMode],
   )
 
   const userMove = useCallback(
-    (from: Square, to: Square, promo?: string): boolean => {
-      if (!game || !chess || !userTurn) return false
+    (from: Square, to: Square, promo?: string, opts: { force?: boolean } = {}): boolean => {
+      if (!game || !chess || !userTurn || checking) return false
       const candidates = chess.moves({ verbose: true }).filter((m) => m.from === from && m.to === to)
-      if (candidates.length === 0) return false
+      if (candidates.length === 0) {
+        setBoardKey((k) => k + 1)
+        return false
+      }
       if (candidates.some((m) => m.promotion) && !promo) {
         setPromotion({ from, to })
         return true
       }
       setPromotion(null)
-      return commitMove(game, `${from}${to}${promo ?? ''}`, 'user') !== null
+      const uci = `${from}${to}${promo ?? ''}`
+      const commit = (warned: boolean) => {
+        const meta = { ...moveMetaRef.current, ...(warned ? { warned: true } : {}) }
+        moveMetaRef.current = {}
+        return commitMove(game, uci, 'user', meta) !== null
+      }
+      const guard = guardRef.current
+      if (!guard || opts.force) return commit(!!opts.force)
+      setChecking(true)
+      void guard(chess.fen(), uci)
+        .catch(() => true)
+        .then((ok) => {
+          setChecking(false)
+          if (ok) commit(false)
+        })
+      return true
     },
-    [game, chess, userTurn, commitMove],
+    [game, chess, userTurn, checking, commitMove],
   )
+
+  /** Put the board back to the real position (after a rejected or cancelled move). */
+  const resetBoard = useCallback(() => setBoardKey((k) => k + 1), [])
 
   const cancelPromotion = useCallback(() => {
     setPromotion(null)
-    setGame((g) => (g ? { ...g } : g)) // re-render the board back to the real position
+    setBoardKey((k) => k + 1)
+  }, [])
+
+  /** Attach the coach's verdict to a move; saved with the game. */
+  const annotate = useCallback((ply: number, review: MoveReview) => {
+    setGame((g) => {
+      if (!g || !g.moves[ply] || g.moves[ply].review) return g
+      const moves = g.moves.slice()
+      moves[ply] = { ...moves[ply], review }
+      const next = { ...g, moves }
+      latestGame.current = next
+      void (next.result ? saveGame(next) : saveCurrentGame(next))
+      return next
+    })
   }, [])
 
   const takeback = useCallback(() => {
@@ -290,7 +340,13 @@ export function usePlay() {
     promotion,
     announcement,
     clocks,
-    canTakeback: !!game && !game.result && takebackPlies(game) > 0,
+    canTakeback: !!game && !game.result && !checking && takebackPlies(game) > 0,
+    boardKey,
+    checking,
+    guardRef,
+    moveMetaRef,
+    resetBoard,
+    annotate,
     start,
     userMove,
     cancelPromotion,
@@ -298,6 +354,21 @@ export function usePlay() {
     resign,
     exitGame,
   }
+}
+
+/** Copy coach reviews from `latest` onto `g` for moves both records share. */
+function withAnnotations(g: GameRecord, latest: GameRecord | null): GameRecord {
+  if (!latest || latest.id !== g.id) return g
+  let changed = false
+  const moves = g.moves.map((m, i) => {
+    const l = latest.moves[i]
+    if (!m.review && l?.review && l.uci === m.uci) {
+      changed = true
+      return { ...m, review: l.review }
+    }
+    return m
+  })
+  return changed ? { ...g, moves } : g
 }
 
 function sideToMove(fen: string): Color {

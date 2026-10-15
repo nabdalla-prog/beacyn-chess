@@ -191,7 +191,15 @@ desktop (1440×900) sizes, committed.
 - **M1 — done (2026-10-14).** Play vs coach, strength 400–2500, adaptive
   rating, clocks, takebacks, promotion picker, typed moves, resume after
   reload, light/dark theme, Pages workflow. 28 unit tests, 4 e2e runs
-  (desktop + phone). Next: M2.
+  (desktop + phone). Deployed to https://nabdalla-prog.github.io/Beacyn-chess/.
+- **M2 — done (2026-10-14).** Analyst engine (separate worker, cached,
+  shared in-flight searches), win-% move classification, tactical and
+  positional detectors, explanation builder, move badges, "See it on the
+  board" / "Show me why" line stepping, hint ladder, Silent / Hints / Guided
+  modes with pre-move blunder warning, eval bar. 58 unit tests, 10 e2e runs.
+  Detectors still to add: overloaded defender (M4), outposts, bad bishop,
+  piece mobility (M4), king activity, opposition, rook behind passed pawn
+  (M6 with endgame drills). Next: M3.
 
 ## Risks
 
@@ -217,3 +225,14 @@ desktop (1440×900) sizes, committed.
 - In-progress game is saved after every move and resumed on reload.
 - Takebacks allowed in every game, counted on the game record, not
   penalised in rating.
+- Default coaching mode is **Guided** (best for a beginner-to-intermediate
+  visual learner). Hints mode = per-move feedback + hints on request; Silent =
+  nothing until the game ends. Guided warns only before blunders (≥ 20% win
+  loss or a thrown-away win), once per move, and the user can always play the
+  move anyway (logged as `warned` on the move).
+- Live analysis runs at depth 12 (MultiPV 3 for the user's position) so it
+  stays responsive on phones; post-game review (M3) can go deeper.
+- Explanation views stay open when the coach replies; they close only when
+  the user taps "Back to game" or plays a move.
+- Opening principles (early queen, king walk) are only mentioned as a
+  supporting reason when the engine has already marked the move as an error.

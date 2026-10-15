@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef } from 'react'
 import { Chessground } from '@lichess-org/chessground'
 import type { Api } from '@lichess-org/chessground/api'
 import type { Config } from '@lichess-org/chessground/config'
-import type { DrawShape } from '@lichess-org/chessground/draw'
+import type { DrawBrushes, DrawShape } from '@lichess-org/chessground/draw'
 import type { Key, Color as CgColor, SquareClasses } from '@lichess-org/chessground/types'
 import '@lichess-org/chessground/assets/chessground.base.css'
 import '@lichess-org/chessground/assets/chessground.brown.css'
@@ -20,6 +20,17 @@ export interface BoardProps {
   shapes?: DrawShape[]
   highlights?: SquareClasses
   onMove?: (orig: Key, dest: Key) => void
+  /** Change to force the board back in sync with `fen` (e.g. after a rejected move). */
+  resetKey?: number
+}
+
+// Coach arrow colors (Okabe–Ito palette, distinguishable with color-vision deficiency).
+const BRUSHES = {
+  best: { key: 'cb', color: '#0072b2', opacity: 0.9, lineWidth: 12 },
+  threat: { key: 'ct', color: '#d55e00', opacity: 0.9, lineWidth: 12 },
+  good: { key: 'cg', color: '#009e73', opacity: 0.85, lineWidth: 10 },
+  bad: { key: 'cx', color: '#e69f00', opacity: 0.9, lineWidth: 12 },
+  hint: { key: 'ch', color: '#cc79a7', opacity: 0.9, lineWidth: 12 },
 }
 
 export function Board(props: BoardProps) {
@@ -35,7 +46,7 @@ export function Board(props: BoardProps) {
     api.current = Chessground(el.current, {
       animation: { duration: 220 },
       premovable: { enabled: false },
-      drawable: { enabled: true, eraseOnMovablePieceClick: true },
+      drawable: { enabled: true, eraseOnMovablePieceClick: true, brushes: BRUSHES as unknown as DrawBrushes },
       movable: { free: false, showDests: true, events: { after: (o, d) => onMove.current?.(o, d) } },
     })
     return () => {
@@ -60,7 +71,7 @@ export function Board(props: BoardProps) {
     }
     api.current?.set(config)
     api.current?.setAutoShapes(props.shapes ?? [])
-  }, [props.fen, props.orientation, props.turnColor, props.movable, props.dests, props.lastMove, props.check, props.shapes, props.highlights])
+  }, [props.fen, props.orientation, props.turnColor, props.movable, props.dests, props.lastMove, props.check, props.shapes, props.highlights, props.resetKey])
 
   return (
     // The visual board is mouse/touch only; keyboard and screen-reader users get the

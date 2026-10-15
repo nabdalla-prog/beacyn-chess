@@ -4,6 +4,12 @@ import { TIME_CONTROLS, type Color } from '../game/session'
 import type { Profile, Settings } from '../storage/db'
 import { levelName } from './labels'
 
+const COACH_MODES: { value: Settings['coachMode']; label: string; help: string }[] = [
+  { value: 'silent', label: 'Silent', help: 'No help during the game.' },
+  { value: 'hints', label: 'Hints', help: 'Feedback on every move, hints when you ask.' },
+  { value: 'guided', label: 'Guided', help: 'Feedback, hints, and a warning before you blunder.' },
+]
+
 interface Props {
   profile: Profile
   settings: Settings
@@ -88,6 +94,25 @@ export function NewGamePanel({ profile, settings, onSettings, onStart }: Props) 
             </button>
           ))}
         </div>
+      </fieldset>
+
+      <fieldset className="field">
+        <legend>Coaching</legend>
+        <div className="segmented" role="radiogroup" aria-label="Coaching mode">
+          {COACH_MODES.map((m) => (
+            <button
+              key={m.value}
+              type="button"
+              role="radio"
+              aria-checked={settings.coachMode === m.value}
+              className={settings.coachMode === m.value ? 'on' : ''}
+              onClick={() => onSettings({ ...settings, coachMode: m.value })}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <p className="muted small">{COACH_MODES.find((m) => m.value === settings.coachMode)?.help}</p>
       </fieldset>
 
       <label className="check">

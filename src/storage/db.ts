@@ -1,7 +1,7 @@
 // IndexedDB storage. Everything stays in this browser; nothing is sent anywhere.
 // If IndexedDB is unavailable (some private modes) we fall back to memory.
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
-import type { GameRecord } from '../game/session'
+import type { CoachMode, GameRecord } from '../game/session'
 
 export interface Profile {
   /** Opponent strength / user's estimated rating. */
@@ -15,10 +15,11 @@ export interface Settings {
   userColor: 'w' | 'b' | 'random'
   timeControl: number // index into TIME_CONTROLS
   adaptive: boolean
+  coachMode: CoachMode
 }
 
 export const DEFAULT_PROFILE: Profile = { rating: 800, gamesPlayed: 0, ratingHistory: [] }
-export const DEFAULT_SETTINGS: Settings = { theme: 'system', userColor: 'w', timeControl: 0, adaptive: true }
+export const DEFAULT_SETTINGS: Settings = { theme: 'system', userColor: 'w', timeControl: 0, adaptive: true, coachMode: 'guided' }
 
 interface CoachDB extends DBSchema {
   games: { key: string; value: GameRecord; indexes: { startedAt: number } }
