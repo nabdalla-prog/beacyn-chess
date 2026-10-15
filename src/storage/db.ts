@@ -25,7 +25,7 @@ interface CoachDB extends DBSchema {
   kv: { key: string; value: unknown }
 }
 
-const DB_NAME = 'chess-coach'
+const DB_NAME = 'beacyn-chess'
 const DB_VERSION = 1
 
 let dbPromise: Promise<IDBPDatabase<CoachDB> | null> | null = null

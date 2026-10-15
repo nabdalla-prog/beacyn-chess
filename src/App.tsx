@@ -31,7 +31,7 @@ export default function App() {
           <span className="brand-mark">
             <PieceIcon role="n" color="w" />
           </span>
-          Chess Coach
+          Beacyn Chess
         </a>
         <button
           type="button"

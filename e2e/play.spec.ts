@@ -6,7 +6,7 @@ async function typeMove(page: Page, san: string) {
 }
 
 test('play moves against the coach, take one back, and resign', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('./')
   await page.getByRole('radio', { name: 'White' }).click()
   await page.getByRole('button', { name: 'Start game' }).click()
   await expect(page.getByTestId('status')).toContainText('Your move')
@@ -33,7 +33,7 @@ test('play moves against the coach, take one back, and resign', async ({ page })
 })
 
 test('drag a piece on the board', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('./')
   await page.getByRole('radio', { name: 'White' }).click()
   await page.getByRole('button', { name: 'Start game' }).click()
   const board = page.locator('cg-board')

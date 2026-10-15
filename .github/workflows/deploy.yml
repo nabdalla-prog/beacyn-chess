@@ -27,18 +27,16 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
-      - name: End-to-end tests
-        run: |
-          npx playwright install --with-deps chromium
-          npx playwright test
       - id: pages
         if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
-      - name: Build for Pages
-        if: github.event_name != 'pull_request'
-        run: npm run build
-        env:
-          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+      # The repo name decides the Pages path (/Beacyn-chess/ here, or a fork's own name).
+      - name: Set base path
+        run: echo "BASE_PATH=/${GITHUB_REPOSITORY#*/}/" >> "$GITHUB_ENV"
+      - name: End-to-end tests (builds the site and tests it from the Pages path)
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:

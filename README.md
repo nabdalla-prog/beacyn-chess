@@ -1,4 +1,6 @@
-# Chess Coach
+# Beacyn Chess
+
+**Play it free: https://nabdalla-prog.github.io/Beacyn-chess/**
 
 A free, open-source, visual chess coach that runs in your browser. Play against
 an engine that adapts to your level; the coach explains the game with arrows,
@@ -45,7 +47,22 @@ at a system browser: `CHROMIUM_PATH=/usr/bin/chromium npm run e2e`.
 Fork the repo, then in **Settings → Pages** choose **GitHub Actions** as the
 source. Every push to `main` runs the tests and publishes the site.
 
+## Credits
+
+Beacyn Chess is built on these open-source projects. Thank you to their authors.
+
+| Project | Used for | License |
+|---|---|---|
+| [Stockfish](https://stockfishchess.org/) via [stockfish.js](https://github.com/nmrugg/stockfish.js) by Nathan Rugg and the Stockfish developers | Chess engine (WebAssembly, runs in your browser) | GPL-3.0 |
+| [chessground](https://github.com/lichess-org/chessground) by the Lichess team | Interactive board, pieces, arrows and highlights | GPL-3.0-or-later |
+| [chess.js](https://github.com/jhlywa/chess.js) by Jeff Hlywa | Chess rules, move validation, PGN and FEN | BSD-2-Clause |
+| [React](https://react.dev/) | User interface | MIT |
+| [idb](https://github.com/jakearchibald/idb) by Jake Archibald | IndexedDB storage | ISC |
+
+Piece images: the *cburnett* set by Colin M.L. Burnett (GPLv2+), bundled with chessground.
+
 ## License
 
-GPL-3.0-or-later (see [LICENSE](LICENSE)). Chessground and Stockfish are GPL
-too.
+GPL-3.0-or-later — see [LICENSE](LICENSE). Because Stockfish and chessground
+are GPL, any copy or fork you distribute must also be GPL and share its
+source code.

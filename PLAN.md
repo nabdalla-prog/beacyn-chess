@@ -1,4 +1,4 @@
-# Chess Coach — Plan
+# Beacyn Chess — Plan
 
 A free, open-source, visual chess coach that runs in the browser. It plays you,
 explains the game on the board while you play, finds your weak spots and trains
@@ -71,7 +71,7 @@ depths we use). `scripts/copy-engine.mjs` copies the two files from
 `node_modules/stockfish/bin` into `public/engine/` before `dev`/`build`, so
 the engine version is pinned by `package-lock.json`. Verified in M1: the
 worker loads and plays in Chromium at desktop and phone sizes, including when
-served from a `/chess-coach/` sub-path like GitHub Pages uses.
+served from the `/Beacyn-chess/` sub-path GitHub Pages uses.
 
 ### Strength model (≈400 – 2500)
 
