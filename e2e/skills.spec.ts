@@ -28,11 +28,12 @@ test('skill profile: analyse games, see the radar and weakest skills, open an ex
 
   await page.getByRole('link', { name: 'Skills' }).click()
   await expect(page.getByRole('heading', { name: 'Your skills' })).toBeVisible()
-  // The imported games weren't fully reviewed (we navigated away), so analyse them here.
+  // The imported games usually weren't fully reviewed (we navigated away), so analyse
+  // them here. On a fast machine the reviews may already have finished.
   const analyse = page.getByTestId('analyse-games')
-  await expect(analyse).toBeVisible()
-  await analyse.click()
-  await expect(page.getByText(/Analysing game \d of 3/)).toBeVisible()
+  const done = page.getByText(/Based on 3 games/)
+  await expect(analyse.or(done).first()).toBeVisible()
+  if (await analyse.isVisible()) await analyse.click()
   await expect(page.getByText(/aren’t analysed yet|Analysing game/)).toBeHidden({ timeout: 180_000 })
   await expect(page.getByText(/Based on 3 games/)).toBeVisible({ timeout: 30_000 })
   await expect(page.getByTestId('radar')).toBeVisible()

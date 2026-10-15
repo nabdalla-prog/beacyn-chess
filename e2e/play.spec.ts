@@ -37,10 +37,10 @@ test('drag a piece on the board', async ({ page }) => {
   await page.getByRole('radio', { name: 'White' }).click()
   await page.getByRole('button', { name: 'Start game' }).click()
   const board = page.locator('cg-board')
-  const box = (await board.boundingBox())!
-  const sq = box.width / 8
-  // e2 -> e4 by clicking from-square then to-square (white at bottom).
-  await page.mouse.click(box.x + sq * 4.5, box.y + sq * 6.5)
-  await page.mouse.click(box.x + sq * 4.5, box.y + sq * 4.5)
+  const sq = (await board.boundingBox())!.width / 8
+  // e2 -> e4 by clicking from-square then to-square (white at bottom). Positions are
+  // relative to the board, so a scroll between the two clicks doesn't matter.
+  await board.click({ position: { x: sq * 4.5, y: sq * 6.5 } })
+  await board.click({ position: { x: sq * 4.5, y: sq * 4.5 } })
   await expect(page.getByTestId('move-list')).toContainText('e4')
 })
