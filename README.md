@@ -79,9 +79,10 @@ saved data.
 
 **Optional AI wording (off by default).** If you like, an AI can reword the
 coach's notes in friendlier language: a small model that runs in your
-browser (free, ~700 MB one-time download, needs WebGPU), an
+browser (*experimental*; free, ~700 MB one-time download, needs WebGPU), an
 [Ollama](https://ollama.com/) server on your own computer, or your own
-Anthropic API key. The AI only rewords facts the engine and board checks
+Anthropic API key (*experimental*; Claude Haiku 5.5 by default, and each
+explanation uses your own API credits). The AI only rewords facts the engine and board checks
 already confirmed: any reply that mentions a move, square, number or chess
 idea that wasn't in the original note is thrown away. The app is complete
 without it.

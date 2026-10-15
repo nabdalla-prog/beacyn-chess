@@ -4,20 +4,19 @@ import { getApiKey } from './key'
 import { SYSTEM_PROMPT, userPrompt } from './guard'
 import type { AiFacts } from './types'
 
-export const DEFAULT_ANTHROPIC_MODEL = 'claude-opus-5-5'
+export const DEFAULT_ANTHROPIC_MODEL = 'claude-haiku-5-5'
 
 export async function rewrite(f: AiFacts, model: string | undefined, signal: AbortSignal): Promise<string | null> {
   const apiKey = getApiKey()
   if (!apiKey) return null
   // The key belongs to the user and stays in their browser, so a browser client is what we want here.
   const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: 0 })
-  const response = await client.beta.messages.create(
+  // A refusal simply means the coach's own note is shown, so no fallback model is needed.
+  const response = await client.messages.create(
     {
       model: model || DEFAULT_ANTHROPIC_MODEL,
       max_tokens: 2000,
       output_config: { effort: 'low' }, // a two-sentence rewrite needs little thinking
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: userPrompt(f) }],
     },

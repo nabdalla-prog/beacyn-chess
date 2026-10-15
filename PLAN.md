@@ -170,9 +170,17 @@ AI code):
   picked from `/api/tags`; the user must allow the site in `OLLAMA_ORIGINS`.
 - **Own key (Anthropic only):** official SDK in browser mode; key in
   `localStorage` only (never IndexedDB, never in backups), "Forget key".
-  Default model `claude-opus-5-5` (editable), effort `low`, server-side
-  refusal fallback; a refusal shows the normal note. One vendor keeps the
-  key-handling surface small.
+  Default model `claude-haiku-5-5` (editable; cheap for a two-sentence
+  rewrite, and each explanation spends the user's own credits — Settings
+  says so), effort `low`; a refusal shows the normal note (Haiku has no
+  server-side fallback, so none is requested). The SDK's browser mode sends
+  `anthropic-dangerous-direct-browser-access: true`; an e2e test checks the
+  header, key, model and that the key goes to no other host. One vendor keeps
+  the key-handling surface small.
+- **"Experimental" labels** on the own-key and in-browser options: neither has
+  been verified end to end against the real service (no key available during
+  development; headless test browsers have no WebGPU). Ollama is tested only
+  against a simulated server. Remove the labels once each is checked for real.
 
 Every answer goes through `checkRewrite`: markup stripped, 8–400 chars, and
 any move/square, number or chess concept (fork, mate, threat…) not present in

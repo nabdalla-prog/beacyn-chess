@@ -125,9 +125,9 @@ export default function SettingsView({ settings, onSettings, onDataChanged }: Pr
 
 const PROVIDERS: { value: AiProvider; label: string; help: string }[] = [
   { value: 'off', label: 'Off', help: 'The coach uses its own words. Everything works without AI.' },
-  { value: 'webllm', label: 'In this browser', help: 'Free and private: a small model runs on your device. Needs a recent browser with WebGPU.' },
+  { value: 'webllm', label: 'In this browser (experimental)', help: 'Free and private: a small model runs on your device. Needs a recent browser with WebGPU.' },
   { value: 'ollama', label: 'Ollama on my computer', help: 'Advanced: use a model from an Ollama server you run yourself.' },
-  { value: 'byok', label: 'My own API key', help: 'Use your Anthropic API key. You pay Anthropic for what you use.' },
+  { value: 'byok', label: 'My own API key (experimental)', help: 'Use your Anthropic API key. You pay Anthropic for what you use.' },
 ]
 
 function AiSection({ ai, onAi }: { ai: AiSettings; onAi: (ai: AiSettings) => void }) {
@@ -277,6 +277,9 @@ function KeySetup({ ai, onAi }: { ai: AiSettings; onAi: (ai: AiSettings) => void
   }
   return (
     <div className="ai-setup">
+      <p className="small" data-testid="credits-note">
+        <strong>Each AI explanation uses your own Anthropic API credits.</strong>
+      </p>
       <p className="small">
         Your key is stored <strong>only in this browser</strong> (not in backups, not on any server of ours — there isn’t one). It is sent only to Anthropic, with each note to
         reword. Anyone using this browser profile could find it, so don’t use a shared computer.
@@ -319,7 +322,7 @@ function KeySetup({ ai, onAi }: { ai: AiSettings; onAi: (ai: AiSettings) => void
           value={model}
           onChange={(e) => setModel(e.target.value)}
           onBlur={() => onAi({ ...ai, byokModel: model.trim() || undefined })}
-          placeholder="claude-opus-5-5"
+          placeholder="claude-haiku-5-5"
           autoComplete="off"
           spellCheck={false}
         />

@@ -106,6 +106,51 @@ test('optional AI (Ollama): rewording is shown only when it adds nothing new', a
   await expect(page.getByTestId('ai-toggle')).toHaveCount(0)
 })
 
+test('own API key: the browser calls Anthropic directly with the required header, Haiku by default', async ({ page }) => {
+  const calls: { headers: Record<string, string>; body: { model: string; messages: { content: string }[] } }[] = []
+  const otherHosts: string[] = []
+  page.on('request', (r) => {
+    if (r.headers()['x-api-key'] && !r.url().startsWith('https://api.anthropic.com/')) otherHosts.push(r.url())
+  })
+  await page.route('https://api.anthropic.com/**', async (route) => {
+    const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': 'POST' }
+    if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors })
+    const body = route.request().postDataJSON()
+    calls.push({ headers: await route.request().allHeaders(), body })
+    const note = /Note: (.*)$/s.exec(body.messages[0].content)![1]
+    return route.fulfill({
+      headers: cors,
+      json: {
+        id: 'msg_test', type: 'message', role: 'assistant', model: body.model, stop_reason: 'end_turn', stop_sequence: null,
+        content: [{ type: 'text', text: `Nice and simple: ${note}` }], usage: { input_tokens: 10, output_tokens: 10 },
+      },
+    })
+  })
+  await page.goto('./#/settings')
+  await page.getByRole('radio', { name: /My own API key/ }).check()
+  await expect(page.getByTestId('credits-note')).toHaveText('Each AI explanation uses your own Anthropic API credits.')
+  await page.getByLabel('Anthropic API key', { exact: true }).fill('sk-ant-test-key')
+  await page.getByRole('button', { name: 'Save key' }).click()
+  await expect(page.getByText('Key works ✓')).toBeVisible()
+
+  expect(calls[0].headers['anthropic-dangerous-direct-browser-access']).toBe('true')
+  expect(calls[0].headers['x-api-key']).toBe('sk-ant-test-key')
+  expect(calls[0].headers['anthropic-version']).toBeTruthy()
+  expect(calls[0].body.model).toBe('claude-haiku-5-5')
+
+  await page.goto('./')
+  await page.getByRole('button', { name: 'Start game' }).click()
+  await page.getByLabel('Type a move').fill('e4')
+  await page.getByRole('button', { name: 'Play', exact: true }).click()
+  await expect(page.getByTestId('feedback').first()).toContainText('Nice and simple:', { timeout: 30_000 })
+  expect(otherHosts).toEqual([]) // the key went nowhere else
+
+  // "Forget key" removes it from the browser.
+  await page.goto('./#/settings')
+  await page.getByRole('button', { name: 'Forget key' }).click()
+  expect(await page.evaluate(() => Object.values(localStorage).join())).not.toContain('sk-ant-test-key')
+})
+
 test.describe('offline', () => {
   test.use({ serviceWorkers: 'allow' })
   test('after one visit, play and puzzles work with no network', async ({ page, context }) => {
