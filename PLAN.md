@@ -199,7 +199,14 @@ desktop (1440×900) sizes, committed.
   modes with pre-move blunder warning, eval bar. 58 unit tests, 10 e2e runs.
   Detectors still to add: overloaded defender (M4), outposts, bad bishop,
   piece mobility (M4), king activity, opposition, rook behind passed pawn
-  (M6 with endgame drills). Next: M3.
+  (M6 with endgame drills).
+- **M3 — done (2026-10-15).** Full-game review (one engine pass per
+  position at depth 12, stored on the game so reopening is instant), eval
+  graph (click/tap to jump), accuracy per side, move-class counts, 3–5 key
+  moments with "Retry this position" (hint, show answer, attempts logged),
+  ECO opening name with how long each side stayed in theory, PGN import
+  (paste or file), recent games list, hash routes so the back button works.
+  84 unit tests, 16 e2e runs. Next: M4.
 
 ## Risks
 
@@ -231,8 +238,25 @@ desktop (1440×900) sizes, committed.
   loss or a thrown-away win), once per move, and the user can always play the
   move anyway (logged as `warned` on the move).
 - Live analysis runs at depth 12 (MultiPV 3 for the user's position) so it
-  stays responsive on phones; post-game review (M3) can go deeper.
+  stays responsive on phones; the post-game review uses the same depth.
 - Explanation views stay open when the coach replies; they close only when
   the user taps "Back to game" or plays a move.
 - Opening principles (early queen, king walk) are only mentioned as a
   supporting reason when the engine has already marked the move as an error.
+- Review depth = live depth (12) so positions analysed during the game are
+  reused and every move is judged at the same depth.
+- Accuracy uses Lichess's published per-move curve; the game figure is the
+  plain average of move accuracies (Lichess also blends in a volatility-
+  weighted mean — ours is simpler and documented as such).
+- Key moments: the user's biggest errors (up to 5); if fewer than 3, the
+  opponent's biggest slips are added as "chances" to punish.
+- The eval graph is a small hand-made SVG instead of Recharts: one series,
+  no extra ~100 KB dependency, full control over tap-to-jump. The radar and
+  trend charts (M4) follow the same approach.
+- Opening names: Lichess chess-openings (CC0), built into
+  `public/openings.json` by `scripts/build-openings.mjs`, matched by position
+  (transpositions count), loaded only on the review screen (~90 KB gzipped).
+- PGN import treats files as untrusted: 100 KB / 300-move limits, friendly
+  error messages, first game of multi-game files, only moves, result, date
+  and a cleaned opponent name are kept (comments and other tags dropped),
+  nothing is ever rendered as HTML. Imported games never change the rating.

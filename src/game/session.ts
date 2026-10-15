@@ -2,6 +2,7 @@
 // game-over detection, takebacks and PGN export.
 import { Chess, type Move, type Square } from 'chess.js'
 import type { MoveClass } from '../coach/classify'
+import type { StoredEval } from '../coach/review'
 
 export type Color = 'w' | 'b'
 
@@ -54,6 +55,8 @@ export type Termination =
   | 'insufficient'
   | 'resign'
   | 'timeout'
+  /** Imported game whose PGN only gives the result. */
+  | 'unknown'
 
 export interface GameResult {
   winner: Color | null
@@ -73,6 +76,13 @@ export interface GameRecord {
   /** Number of takebacks used (logged, never penalised). */
   takebacks: number
   coachMode?: CoachMode
+  /** Post-game engine review: top line per position (index i = before move i). */
+  analysis?: { depth: number; evals: (StoredEval | null | undefined)[] }
+  /** "Retry this position" attempts from the review. */
+  retries?: { ply: number; solved: boolean; tries: number; at: number }[]
+  /** Imported from PGN: not played against the coach, never affects the rating. */
+  imported?: boolean
+  opponentName?: string
   result?: GameResult
   /** Opponent rating after the adaptive adjustment, once finished. */
   ratingAfter?: number
@@ -198,15 +208,109 @@ const TERMINATION_TEXT: Record<Termination, string> = {
   insufficient: 'insufficient material',
   resign: 'resignation',
   timeout: 'time',
+  unknown: '',
 }
 
 export function describeResult(game: GameRecord): string {
   const r = game.result
   if (!r) return ''
   const how = TERMINATION_TEXT[r.termination]
-  if (r.winner === null) return `Draw by ${how}`
+  const by = how ? ` by ${how}` : ''
+  if (r.winner === null) return `Draw${by}`
   const you = r.winner === game.userColor
-  return `${you ? 'You won' : 'Coach won'} by ${how}`
+  return `${you ? 'You won' : `${opponentLabel(game)} won`}${by}`
+}
+
+export function opponentLabel(game: Pick<GameRecord, 'imported' | 'opponentName' | 'rating'>): string {
+  if (game.imported) return game.opponentName || 'Opponent'
+  return 'Coach'
+}
+
+/** Limits for pasted or uploaded PGN text. One real game is a few KB. */
+export const MAX_PGN_CHARS = 100_000
+export const MAX_PGN_PLIES = 600
+
+/** An import problem with a message that is safe and friendly to show the user. */
+export class PgnImportError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'PgnImportError'
+  }
+}
+
+/**
+ * Player names come from untrusted files: keep printable text only (no control
+ * or bidi-override characters), collapse whitespace and cap the length. React
+ * renders it as plain text, never as HTML.
+ */
+export function cleanPlayerName(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  const name = raw
+    // Intentionally matches control characters: they are what we strip.
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 40)
+    .trim()
+  return name && name !== '?' ? name : undefined
+}
+
+/**
+ * Read a PGN into a game record. `userColor` says which side the user played.
+ * Only the moves (checked by chess.js), the result, the date and the opponent's
+ * cleaned name are kept; comments and other tags are dropped. If the text holds
+ * several games, the first one is used. Throws PgnImportError with a friendly message.
+ */
+export function importPgn(pgn: string, userColor: Color, now = Date.now()): GameRecord {
+  if (pgn.length > MAX_PGN_CHARS) {
+    throw new PgnImportError(`That’s too much text for one game (limit ${Math.round(MAX_PGN_CHARS / 1000)} KB). Paste or choose a single game.`)
+  }
+  let text = pgn.replace(/^\ufeff/, '').replace(/\r\n?/g, '\n').trim()
+  if (!text) throw new PgnImportError('Paste a game first.')
+  // Several games in one file: keep the first.
+  const second = text.slice(1).search(/^\[Event /m)
+  if (second >= 0) text = text.slice(0, second + 1).trim()
+
+  const chess = new Chess()
+  try {
+    chess.loadPgn(text)
+  } catch {
+    throw new PgnImportError('We couldn’t read that as a chess game. Check that it is PGN text with the moves of one game.')
+  }
+  const history = chess.history({ verbose: true })
+  if (history.length === 0) throw new PgnImportError('No moves found in that PGN.')
+  if (history.length > MAX_PGN_PLIES) throw new PgnImportError(`That game is too long to review (over ${MAX_PGN_PLIES / 2} moves).`)
+  const headers = chess.getHeaders()
+  const startFen = history[0].before
+  const moves: MoveRecord[] = history.map((m) => ({
+    san: m.san,
+    uci: moveToUci(m),
+    by: m.color === userColor ? 'user' : 'engine',
+    timeMs: 0,
+  }))
+  const end = new Chess(startFen)
+  for (const m of moves) tryUci(end, m.uci)
+  const r = headers.Result
+  const result: GameResult | undefined =
+    detectGameOver(end) ??
+    (r === '1-0' ? { winner: 'w', termination: 'unknown' } : r === '0-1' ? { winner: 'b', termination: 'unknown' } : r === '1/2-1/2' ? { winner: null, termination: 'unknown' } : undefined)
+  const date = /^\d{4}\.\d{2}\.\d{2}$/.test(headers.Date ?? '') ? Date.parse(headers.Date.replace(/\./g, '-')) : NaN
+  const started = Number.isFinite(date) && date > 0 && date <= now ? date : now
+  return {
+    id: `p${now.toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    startedAt: started,
+    endedAt: started,
+    userColor,
+    rating: 0,
+    timeControl: null,
+    startFen,
+    moves,
+    takebacks: 0,
+    result: result ?? { winner: null, termination: 'unknown' },
+    imported: true,
+    opponentName: cleanPlayerName(userColor === 'w' ? headers.Black : headers.White),
+  }
 }
 
 function pgnDate(ms: number): string {

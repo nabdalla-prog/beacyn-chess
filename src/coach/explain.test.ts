@@ -83,6 +83,13 @@ describe('explainMove', () => {
     expect(e.text).toBe('You could have won the knight on d5 with exd5.')
   })
 
+  it('a missed free piece beats describing the opponent’s reply', () => {
+    // White's queen can take Black's undefended queen on f2; White plays d3 instead.
+    const fen = '1nb1k2r/pp2bQpp/8/3p4/8/P7/1P1P1qPP/n1BK3R w k - 0 15'
+    const e = explainMove({ fenBefore: fen, uci: 'd2d3', ply: 28, before: [L('f7f2 e8d8', cp(900))], after: [L('f2c2 d1e1', cp(400))] })
+    expect(e.text).toBe('You could have won the queen on f2 with Qxf2.')
+  })
+
   it('falls back to the engine numbers when no detector applies', () => {
     const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
     const e = explainMove({ fenBefore: fen, uci: 'g2g4', ply: 0, before: [L('e2e4 e7e5', cp(30))], after: [L('d7d5 h2h3', cp(70))] })

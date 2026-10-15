@@ -247,6 +247,9 @@ export function explainMove({ fenBefore, uci, ply, before, after }: ExplainInput
     const hangsNow = hangingPieces(chessAfter, me)
     const hangingBefore = hangingPieces(chessBefore, me)
     const refTakes = refMove?.captured ? hangsNow.find((h) => h.square === refMove.to) : undefined
+    // A free piece (knight or more) the user could have taken matters more than the opponent's reply.
+    const missedWin =
+      !!bestMove?.captured && VALUE[bestMove.captured] >= 300 && hangingPieces(chessBefore, opp).some((h) => h.square === bestMove.to)
 
     if (played.type === 'mate' && played.value < 0) {
       const n = Math.abs(played.value)
@@ -272,6 +275,9 @@ export function explainMove({ fenBefore, uci, ply, before, after }: ExplainInput
         concepts.push('hanging-piece')
       }
       afterFrame.highlights.push({ square: refTakes.square, kind: 'weak' })
+    } else if (missedWin && bestMove?.captured) {
+      text = `You could have won the ${pieceName(bestMove.captured)} on ${bestMove.to} with ${bestSan}.`
+      concepts.push('missed-capture')
     } else if (refMove && refutation) {
       const c2 = new Chess(refutation.fens[1])
       const fork = forkAt(c2, refMove.to)

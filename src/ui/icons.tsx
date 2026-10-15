@@ -33,3 +33,15 @@ export function ThemeIcon({ theme }: { theme: 'system' | 'light' | 'dark' }) {
     </svg>
   )
 }
+
+/** Navigation arrows drawn as SVG: the ⏮ ◀ ▶ ⏭ characters turn into colored emoji on some phones. */
+export function NavIcon({ dir }: { dir: 'first' | 'prev' | 'next' | 'last' }) {
+  const tri = dir === 'prev' || dir === 'first' ? 'M15 5L7 12l8 7z' : 'M9 5l8 7-8 7z'
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="nav-icon">
+      <path d={tri} />
+      {dir === 'first' && <rect x="4" y="5" width="2.5" height="14" rx="1" />}
+      {dir === 'last' && <rect x="17.5" y="5" width="2.5" height="14" rx="1" />}
+    </svg>
+  )
+}

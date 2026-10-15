@@ -12,8 +12,8 @@ highlights and short notes, finds your weak spots and trains them.
 
 No install, no account, no server — all your data stays in your browser.
 
-> **Status:** early development. Milestones 1–2 (play the coach, live
-> coaching) are done. See [PLAN.md](PLAN.md) for the roadmap.
+> **Status:** early development. Milestones 1–3 (play the coach, live
+> coaching, post-game review) are done. See [PLAN.md](PLAN.md) for the roadmap.
 
 ## Features so far
 
@@ -40,6 +40,16 @@ No install, no account, no server — all your data stays in your browser.
 - Guided mode warns before a blunder ("Wait — check what that move leaves
   undefended") and lets you pick another move
 - Evaluation bar above the board
+
+**Post-game review**
+
+- Graph of who was winning, move by move — tap any point to jump there
+- Accuracy for you and your opponent, and a count of each move quality
+- The 3–5 key moments of the game, each with **Retry this position**: find
+  the better move yourself, with a hint or the answer if you need it
+- Opening name (ECO) and how long each side stayed in known theory
+- Import games you played elsewhere by pasting PGN or choosing a `.pgn` file
+- Your recent games, saved in this browser
 
 ## Run locally
 
@@ -77,6 +87,7 @@ Beacyn Chess is built on these open-source projects. Thank you to their authors.
 | [chess.js](https://github.com/jhlywa/chess.js) by Jeff Hlywa | Chess rules, move validation, PGN and FEN | BSD-2-Clause |
 | [React](https://react.dev/) | User interface | MIT |
 | [idb](https://github.com/jakearchibald/idb) by Jake Archibald | IndexedDB storage | ISC |
+| [chess-openings](https://github.com/lichess-org/chess-openings) by the Lichess team | Opening names and ECO codes | CC0 |
 
 The [Lexend](https://www.lexend.com/) font (SIL Open Font License 1.1) is
 bundled via [Fontsource](https://fontsource.org/).

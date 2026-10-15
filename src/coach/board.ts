@@ -118,8 +118,10 @@ export function forkAt(chess: Chess, square: Square): Fork | null {
     const t = chess.get(s)
     if (!t || t.color !== enemy) continue
     if (!chess.attackers(s, p.color).includes(square)) continue
+    // Pawns don't count: "forking the king and a pawn" is just winning a pawn with check.
+    if (t.type === 'p') continue
     const worthwhile = t.type === 'k' || VALUE[t.type] > VALUE[p.type] || chess.attackers(s, enemy).length === 0
-    if (worthwhile && (t.type !== 'p' || chess.attackers(s, enemy).length === 0)) targets.push({ square: s, piece: t.type })
+    if (worthwhile) targets.push({ square: s, piece: t.type })
   }
   if (targets.length < 2) return null
   if (see(chess, square, enemy) > 0) return null

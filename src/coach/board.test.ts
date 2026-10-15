@@ -46,6 +46,10 @@ describe('tactical detectors', () => {
   it('no fork when the forking piece is simply lost', () => {
     expect(forkAt(pos('r2qk3/2N5/8/8/8/8/8/4K3 b - - 0 1'), 'c7')).toBeNull() // queen d8 takes the knight
   })
+  it('king plus a loose pawn is not a fork', () => {
+    // Queen c2 checks the king on d1 and hits the pawn on b2.
+    expect(forkAt(pos('4k3/8/8/8/8/8/1Pq5/3K4 w - - 0 1'), 'c2')).toBeNull()
+  })
   it('finds an absolute pin', () => {
     const t = lineTacticsFrom(pos('4k3/8/2n5/1B6/8/8/8/4K3 w - - 0 1'), 'b5')
     expect(t).toEqual([expect.objectContaining({ kind: 'pin', absolute: true, front: { square: 'c6', piece: 'n' }, back: { square: 'e8', piece: 'k' } })])

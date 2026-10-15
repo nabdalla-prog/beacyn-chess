@@ -76,6 +76,11 @@ export async function saveGame(game: GameRecord): Promise<void> {
   else memory.games.set(game.id, game)
 }
 
+export async function getGame(id: string): Promise<GameRecord | null> {
+  const d = await db()
+  return (d ? await d.get('games', id) : memory.games.get(id)) ?? null
+}
+
 export async function listGames(): Promise<GameRecord[]> {
   const d = await db()
   const all = d ? await d.getAllFromIndex('games', 'startedAt') : [...memory.games.values()]

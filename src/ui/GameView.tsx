@@ -3,7 +3,7 @@ import { Chess, type Square } from 'chess.js'
 import type { DrawShape } from '@lichess-org/chessground/draw'
 import type { Key, SquareClasses } from '@lichess-org/chessground/types'
 import { Board } from './Board'
-import { PieceIcon } from './icons'
+import { PieceIcon, NavIcon } from './icons'
 import { levelName } from './labels'
 import { MoveBadge } from './MoveBadge'
 import { CoachPanel, CoachStrip } from './CoachPanel'
@@ -35,7 +35,7 @@ function frameHighlights(frame: Frame): SquareClasses {
 
 const pair = (uci: string | undefined): Key[] | undefined => (uci ? [uci.slice(0, 2) as Key, uci.slice(2, 4) as Key] : undefined)
 
-export function GameView({ play, coach, onNewGame }: { play: Play; coach: Coach; onNewGame: () => void }) {
+export function GameView({ play, coach, onNewGame, onReview }: { play: Play; coach: Coach; onNewGame: () => void; onReview: () => void }) {
   const { game, chess } = play
   const [flipped, setFlipped] = useState(false)
   const [moveText, setMoveText] = useState('')
@@ -284,10 +284,10 @@ export function GameView({ play, coach, onNewGame }: { play: Play; coach: Coach;
                 </div>
                 <div className="row">
                   <button type="button" onClick={() => coach.stepLine(-1)} disabled={view.index === 0} aria-label="Previous move">
-                    ◀
+          <NavIcon dir="prev" />
                   </button>
                   <button type="button" className="primary" onClick={() => coach.stepLine(1)} disabled={view.index >= view.fens.length - 1} aria-label="Next move">
-                    Next ▶
+          Next <NavIcon dir="next" />
                   </button>
                   <button type="button" onClick={coach.closeView}>
                     Back to game
@@ -380,7 +380,10 @@ export function GameView({ play, coach, onNewGame }: { play: Play; coach: Coach;
             </>
           ) : (
             <>
-              <button type="button" className="primary" onClick={onNewGame}>
+              <button type="button" className="primary" onClick={onReview} data-testid="review-game">
+                Review game
+              </button>
+              <button type="button" onClick={onNewGame}>
                 New game
               </button>
               <button

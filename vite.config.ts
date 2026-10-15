@@ -10,6 +10,6 @@ export default defineConfig(({ command, isPreview }) => ({
   base: command === 'build' || isPreview ? BASE_PATH : '/',
   plugins: [react()],
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
   },
 }))
