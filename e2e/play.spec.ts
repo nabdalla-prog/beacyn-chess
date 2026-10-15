@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { waitForSaved } from './helpers'
 
 async function typeMove(page: Page, san: string) {
   await page.getByLabel('Type a move').fill(san)
@@ -22,6 +23,7 @@ test('play moves against the coach, take one back, and resign', async ({ page })
   // Takeback removes the coach reply and our move.
   await page.getByRole('button', { name: /Take back/ }).click()
   await expect(page.getByTestId('move-list').locator('li')).toHaveCount(1)
+  await waitForSaved(page, 'currentGame', 'v && v.moves.length === 2')
 
   // Game survives a reload.
   await page.reload()

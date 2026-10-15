@@ -34,13 +34,17 @@ function frameHighlights(frame: Frame): SquareClasses {
   return new Map(frame.highlights.map((h) => [h.square as Key, `cc-${h.kind}`]))
 }
 
+const WAIT_MSG = 'Wait for the coach to move.'
+
 const pair = (uci: string | undefined): Key[] | undefined => (uci ? [uci.slice(0, 2) as Key, uci.slice(2, 4) as Key] : undefined)
 
 export function GameView({ play, coach, onNewGame, onReview }: { play: Play; coach: Coach; onNewGame: () => void; onReview: () => void }) {
   const { game, chess } = play
   const [flipped, setFlipped] = useState(false)
   const [moveText, setMoveText] = useState('')
-  const [moveError, setMoveError] = useState('')
+  const [error, setMoveError] = useState('')
+  // "Wait for the coach" stops being true as soon as the coach has moved.
+  const moveError = error === WAIT_MSG && play.userTurn ? '' : error
   const [copied, setCopied] = useState(false)
   // A move picked in the move list; forgotten as soon as another move is played.
   const [selected, setSelected] = useState<{ ply: number; at: number } | null>(null)
@@ -114,7 +118,7 @@ export function GameView({ play, coach, onNewGame, onReview }: { play: Play; coa
   const submitMove = (e: FormEvent) => {
     e.preventDefault()
     if (!play.userTurn) {
-      setMoveError('Wait for the coach to move.')
+      setMoveError(WAIT_MSG)
       return
     }
     const mv = parseUserMove(chess, moveText)

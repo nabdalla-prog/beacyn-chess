@@ -54,7 +54,7 @@ async function shot(page, name) {
       await page.getByRole('button', { name: 'Start game' }).click()
       await page.getByLabel('Type a move').fill('e4')
       await page.getByRole('button', { name: 'Play', exact: true }).click()
-      await page.getByTestId('move-list').filter({ hasText: /1\.\s*e4\s*\S+/ }).waitFor({ timeout: 30000 })
+      await page.getByTestId('move-list').locator('[data-san]').nth(1).waitFor({ timeout: 30000 })
       await page.getByTestId('hint-btn').first().click()
       await page.getByTestId('hint').first().waitFor()
       await page.getByTestId('hint-btn').first().click()

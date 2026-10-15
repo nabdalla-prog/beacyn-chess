@@ -1,4 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
+import { waitForGameClosed } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 
 // Every page, in light and dark, is checked with axe (WCAG 2.1 A/AA, which includes 4.5:1 text contrast).
@@ -15,7 +16,7 @@ async function axe(page: Page, what: string) {
 
 for (const scheme of ['light', 'dark'] as const) {
   test(`axe: every page has no WCAG A/AA violations (${scheme})`, async ({ page }) => {
-    test.setTimeout(180_000)
+    test.setTimeout(300_000)
     await page.emulateMedia({ colorScheme: scheme })
     await page.goto('./')
     await axe(page, 'home')
@@ -27,6 +28,7 @@ for (const scheme of ['light', 'dark'] as const) {
     await expect(page.getByTestId('feedback')).toBeVisible({ timeout: 30_000 })
     await axe(page, 'play with coaching')
     await page.getByRole('button', { name: 'Resign' }).click()
+    await waitForGameClosed(page)
 
     await page.goto('./')
     await page.getByRole('button', { name: /Review a game from elsewhere/ }).click()

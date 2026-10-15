@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { waitForGameClosed, waitForSaved } from './helpers'
 import { expect, test, type Page } from '@playwright/test'
 
 const mateIn1 = JSON.parse(readFileSync(new URL('../public/puzzles/mateIn1/0.json', import.meta.url), 'utf8'))[0] as { id: string }
@@ -11,6 +12,7 @@ async function playAndResign(page: Page) {
   await expect(page.getByTestId('move-list')).toContainText('e4')
   await page.getByRole('button', { name: 'Resign' }).click()
   await expect(page.getByTestId('status')).toContainText('resignation')
+  await waitForGameClosed(page)
 }
 
 test('settings: board and pieces change every board and are remembered', async ({ page }) => {
@@ -19,6 +21,7 @@ test('settings: board and pieces change every board and are remembered', async (
   await page.getByRole('radio', { name: 'Green' }).click()
   await page.getByRole('radio', { name: 'Merida' }).click()
   await page.getByRole('switch', { name: 'Sound effects' }).uncheck()
+  await waitForSaved(page, 'settings', "v.sound === false && v.boardTheme === 'green' && v.pieceSet === 'merida'")
   await page.reload()
   await expect(page.locator('html')).toHaveClass(/board-green/)
   await expect(page.locator('html')).toHaveClass(/pieces-merida/)
@@ -97,7 +100,7 @@ test('optional AI (Ollama): rewording is shown only when it adds nothing new', a
   await expect(fb).not.toContainText('Friendly:')
 
   // The next answer invents a move and a number: it is thrown away, the coach's words stay.
-  await expect(page.getByTestId('move-list')).toContainText(/1\.\s*e4\s*\S+/, { timeout: 30_000 })
+  await expect(page.getByTestId('move-list').locator('[data-san]')).toHaveCount(2, { timeout: 30_000 }) // the coach answered
   await page.getByLabel('Type a move').fill('d4')
   await page.getByRole('button', { name: 'Play', exact: true }).click()
   await expect(page.getByTestId('feedback').first()).toContainText('d4', { timeout: 30_000 })
@@ -166,8 +169,9 @@ test.describe('offline', () => {
     await page.getByRole('button', { name: 'Start game' }).click()
     await page.getByLabel('Type a move').fill('e4')
     await page.getByRole('button', { name: 'Play', exact: true }).click()
-    await expect(page.getByTestId('move-list')).toContainText(/1\.\s*e4\s*\S+/, { timeout: 30_000 }) // the engine answered offline
+    await expect(page.getByTestId('move-list').locator('[data-san]')).toHaveCount(2, { timeout: 30_000 }) // the engine answered offline
     await page.getByRole('button', { name: 'Resign' }).click()
+    await waitForGameClosed(page)
     await page.goto(`./#/train/puzzle/mateIn1/0/${mateIn1.id}`)
     await expect(page.getByTestId('puzzle')).toBeVisible()
     await context.setOffline(false)
