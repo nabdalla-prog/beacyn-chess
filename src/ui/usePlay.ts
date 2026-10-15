@@ -78,6 +78,13 @@ export function usePlay() {
     latestGame.current = game
   }, [game])
 
+  /** Re-read profile and settings (after placement changed them). */
+  const refresh = useCallback(async () => {
+    const [p, s] = await Promise.all([loadProfile(), loadSettings()])
+    setProfile(p)
+    setSettingsState(s)
+  }, [])
+
   // ---- load saved state ----
   useEffect(() => {
     void (async () => {
@@ -327,6 +334,7 @@ export function usePlay() {
 
   return {
     loaded,
+    refresh,
     profile,
     settings,
     setSettings,

@@ -3,10 +3,11 @@ import { GameView } from './ui/GameView'
 import { NewGamePanel } from './ui/NewGamePanel'
 import { usePlay } from './ui/usePlay'
 import { useCoach } from './ui/useCoach'
-import { getGame, type Settings } from './storage/db'
+import { getGame, getKv, setKv, type Settings } from './storage/db'
 import type { GameRecord } from './game/session'
 import { ImportPgn, RecentGames } from './ui/HomeExtras'
 import type { TrainRoute } from './ui/TrainView'
+import type { LearnRoute } from './ui/LearnView'
 import { THEMES as PUZZLE_THEMES, type Theme } from './training/puzzles'
 import { ThemeIcon } from './ui/icons'
 import logoMark from './assets/beacyn-mark-dark-bg.svg'
@@ -15,8 +16,12 @@ import logoMark from './assets/beacyn-mark-dark-bg.svg'
 const ReviewView = lazy(() => import('./ui/ReviewView'))
 const SkillsView = lazy(() => import('./ui/SkillsView'))
 const TrainView = lazy(() => import('./ui/TrainView'))
+const LearnView = lazy(() => import('./ui/LearnView'))
+const WelcomeView = lazy(() => import('./ui/WelcomeView'))
 
 type Route = { page: 'home' } | { page: 'skills' } | { page: 'review'; id: string; ply: number | null } | { page: 'train'; train: TrainRoute }
+  | { page: 'learn'; learn: LearnRoute }
+  | { page: 'welcome' }
 
 /** Tiny hash router: "#/review/<gameId>[/<ply>]", "#/skills" or home. Keeps the back button working. */
 function useHashRoute(): Route {
@@ -30,6 +35,13 @@ function useHashRoute(): Route {
   const m = /^#\/review\/([\w-]+)(?:\/(\d+))?$/.exec(hash)
   if (m) return { page: 'review', id: m[1], ply: m[2] != null ? Number(m[2]) : null }
   if (hash === '#/skills') return { page: 'skills' }
+  if (hash === '#/welcome') return { page: 'welcome' }
+  const l = /^#\/learn(?:\/(lesson|opening|endgame|vis)\/([\w-]+))?$/.exec(hash)
+  if (l) {
+    if (!l[1]) return { page: 'learn', learn: { kind: 'home' } }
+    if (l[1] === 'vis') return { page: 'learn', learn: { kind: 'vis', mode: l[2] === 'blindfold' ? 'blindfold' : 'squares' } }
+    return { page: 'learn', learn: { kind: l[1] as 'lesson' | 'opening' | 'endgame', id: l[2] } }
+  }
   const t = /^#\/train(?:\/(theme|puzzle)\/(\w+)(?:\/(\d)\/(\w+))?)?$/.exec(hash)
   if (t) {
     const theme = t[2] as Theme
@@ -89,6 +101,11 @@ export default function App() {
   const coach = useCoach(play)
   const { settings, setSettings } = play
   const route = useHashRoute()
+  // First visit: offer the two-minute placement (until done or declined).
+  const [onboarded, setOnboarded] = useState(true)
+  useEffect(() => {
+    void getKv('onboarded', false).then(setOnboarded)
+  }, [])
 
   useEffect(() => {
     const root = document.documentElement
@@ -113,6 +130,9 @@ export default function App() {
         <nav className="topnav" aria-label="Main">
           <a href="#/" aria-current={route.page === 'home' ? 'page' : undefined} onClick={(e) => (e.preventDefault(), goHome())}>
             Play
+          </a>
+          <a href="#/learn" aria-current={route.page === 'learn' ? 'page' : undefined} onClick={() => (navigatedInApp = true)}>
+            Learn
           </a>
           <a href="#/train" aria-current={route.page === 'train' ? 'page' : undefined} onClick={() => (navigatedInApp = true)}>
             Train
@@ -141,6 +161,20 @@ export default function App() {
           <Suspense fallback={<p className="muted center">Loading…</p>}>
             <SkillsView onOpenReview={openReview} onPlay={goHome} />
           </Suspense>
+        ) : route.page === 'learn' ? (
+          <Suspense fallback={<p className="muted center">Loading…</p>}>
+            <LearnView key={JSON.stringify(route.learn)} route={route.learn} />
+          </Suspense>
+        ) : route.page === 'welcome' ? (
+          <Suspense fallback={<p className="muted center">Loading…</p>}>
+            <WelcomeView
+              onFinish={async () => {
+                setOnboarded(true)
+                await play.refresh() // the new coach strength must be loaded before home shows it
+                goHome()
+              }}
+            />
+          </Suspense>
         ) : route.page === 'train' ? (
           <Suspense fallback={<p className="muted center">Loading…</p>}>
             <TrainView
@@ -165,7 +199,28 @@ export default function App() {
           />
         ) : (
           <div className="home">
-            <NewGamePanel profile={play.profile} settings={settings} onSettings={setSettings} onStart={play.start} />
+            {!onboarded && play.profile.gamesPlayed === 0 && (
+              <section className="card welcome-card" data-testid="welcome-card">
+                <strong>New here?</strong>
+                <span className="small muted">Find your level in about two minutes, so the coach starts at the right strength.</span>
+                <div className="row wrap">
+                  <a className="primary link-btn" href="#/welcome" onClick={() => (navigatedInApp = true)}>
+                    Find my level
+                  </a>
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => {
+                      setOnboarded(true)
+                      void setKv('onboarded', true)
+                    }}
+                  >
+                    No thanks
+                  </button>
+                </div>
+              </section>
+            )}
+            <NewGamePanel key={play.profile.rating} profile={play.profile} settings={settings} onSettings={setSettings} onStart={play.start} />
             <RecentGames onReview={openReview} />
             <ImportPgn onImported={openReview} />
           </div>

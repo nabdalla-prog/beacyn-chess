@@ -12,8 +12,9 @@ highlights and short notes, finds your weak spots and trains them.
 
 No install, no account, no server — all your data stays in your browser.
 
-> **Status:** early development. Milestones 1–5 (play the coach, live
-> coaching, post-game review, skill profile, training) are done. See [PLAN.md](PLAN.md) for the roadmap.
+> **Status:** early development. Milestones 1–6 (play the coach, live
+> coaching, post-game review, skill profile, training, lessons and drills)
+> are done. See [PLAN.md](PLAN.md) for the roadmap.
 
 ## Features so far
 
@@ -73,6 +74,17 @@ No install, no account, no server — all your data stays in your browser.
 - Hints step by step (where to look → which piece → the move), or step
   through the solution
 - Missed puzzles come back on a spaced-repetition schedule (SM-2)
+
+**Learn**
+
+- 16 short lessons from how the pieces move to the rule of the square, each
+  with board exercises and a quick check — all open, with a recommended next
+- Opening trainer: Italian, London, 1…e5, Caro-Kann and Queen’s Gambit
+  Declined lines with the idea behind each move, reviewed on a schedule
+- Endgame drills against the engine: basic mates, king and pawn, Lucena,
+  Philidor
+- Visualization drills: name the square, and blindfold-lite
+- A two-minute placement for new players to set the starting level
 
 ## Run locally
 

@@ -21,6 +21,10 @@ interface Props {
   showTheme: boolean
   onAttempt: (p: TrainPuzzle, a: Attempt) => void
   onExit: () => void
+  /** Replaces the built-in "Next puzzle" step (e.g. placement picks the next puzzle adaptively). */
+  onNext?: () => void
+  /** Hide the hint and solution buttons (placement measures unaided solving). */
+  noHelp?: boolean
 }
 
 const pairOf = (u?: string): Key[] | undefined => (u ? [u.slice(0, 2) as Key, u.slice(2, 4) as Key] : undefined)
@@ -34,7 +38,7 @@ function promptFor(p: TrainPuzzle, turn: 'w' | 'b'): string {
   return `${side} to move. Find the best move.`
 }
 
-export function PuzzleSession({ title, puzzles, showTheme, onAttempt, onExit }: Props) {
+export function PuzzleSession({ title, puzzles, showTheme, onAttempt, onExit, onNext, noHelp }: Props) {
   const [index, setIndex] = useState(0)
   const p = puzzles[index]
   const [fen, setFen] = useState(p?.fen ?? '')
@@ -260,16 +264,22 @@ export function PuzzleSession({ title, puzzles, showTheme, onAttempt, onExit }: 
           </p>
           <div className="row wrap">
             {!done ? (
-              <>
-                <button type="button" className="small-btn" onClick={hint} disabled={!canMove || attempt.current.hintLevel >= 3}>
-                  Hint
-                </button>
+              noHelp ? (
                 <button type="button" className="small-btn" onClick={reveal} disabled={status === 'setup' || status === 'checking'}>
-                  Show solution
+                  I don’t know
                 </button>
-              </>
+              ) : (
+                <>
+                  <button type="button" className="small-btn" onClick={hint} disabled={!canMove || attempt.current.hintLevel >= 3}>
+                    Hint
+                  </button>
+                  <button type="button" className="small-btn" onClick={reveal} disabled={status === 'setup' || status === 'checking'}>
+                    Show solution
+                  </button>
+                </>
+              )
             ) : (
-              <button type="button" className="primary" onClick={() => setIndex((i) => i + 1)} data-testid="next-puzzle">
+              <button type="button" className="primary" onClick={() => (onNext ? onNext() : setIndex((i) => i + 1))} data-testid="next-puzzle">
                 {index + 1 < puzzles.length ? 'Next puzzle' : 'Finish'}
               </button>
             )}

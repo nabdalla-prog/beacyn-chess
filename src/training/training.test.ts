@@ -173,3 +173,17 @@ describe('thin puzzle bands', () => {
     expect(pool.some((p) => p.id.startsWith('b4-'))).toBe(true)
   })
 })
+
+describe('opening lines and lessons', () => {
+  it('opening lines are scheduled by how the drill went, and count on the plan', async () => {
+    const { applyOpeningDrill, completeLesson, emptyTraining } = await import('./store')
+    const start = { ...emptyTraining(), plan: buildPlan({ now, dueReviews: 0, ownMistakes: 0, weakest: [], dueOpenings: 2 }) }
+    expect(start.plan.items.map((i) => i.id)).toContain('openings')
+    const clean = applyOpeningDrill(start, 'italian-piano', 0, now)
+    expect(clean.openingCards['italian-piano']).toMatchObject({ reps: 1, interval: 1 })
+    expect(clean.plan!.items.find((i) => i.id === 'openings')!.done).toBe(1)
+    const sloppy = applyOpeningDrill(clean, 'italian-piano', 1, now)
+    expect(sloppy.openingCards['italian-piano']).toMatchObject({ reps: 0, lapses: 1 })
+    expect(completeLesson(completeLesson(start, 'forks'), 'forks').lessonsDone).toEqual(['forks'])
+  })
+})

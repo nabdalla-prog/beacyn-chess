@@ -347,3 +347,68 @@ export function uciLineToSan(fen: string, uci: string[]): { san: string[]; moves
   }
   return { san, moves, fens }
 }
+
+// ---------- endgame facts ----------
+
+/**
+ * Kings facing each other on a file or rank with an odd number of squares
+ * between them. The side NOT to move "has the opposition". 1 square = direct,
+ * 3 or 5 = distant.
+ */
+export function opposition(chess: Chess): { kind: 'direct' | 'distant'; holder: Color } | null {
+  const w = chess.findPiece({ type: 'k', color: 'w' })[0]
+  const b = chess.findPiece({ type: 'k', color: 'b' })[0]
+  if (!w || !b) return null
+  const df = Math.abs(fileOf(w) - fileOf(b))
+  const dr = Math.abs(rankOf(w) - rankOf(b))
+  const gap = df === 0 ? dr - 1 : dr === 0 ? df - 1 : -1
+  if (gap < 1 || gap % 2 === 0) return null
+  return { kind: gap === 1 ? 'direct' : 'distant', holder: other(chess.turn()) }
+}
+
+/** King distance (in king moves) to the nearest centre square: 0 = centralised, 3 = on the edge. */
+export function kingCentrality(chess: Chess, color: Color): number {
+  const k = chess.findPiece({ type: 'k', color })[0]
+  if (!k) return 99
+  return Math.min(...CENTER.map((c) => Math.max(Math.abs(fileOf(k) - fileOf(c)), Math.abs(rankOf(k) - rankOf(c)))))
+}
+
+/** `color`'s rooks standing behind a passed pawn (either side's) on the same file. */
+export function rooksBehindPassedPawns(chess: Chess, color: Color): { rook: Square; pawn: Square }[] {
+  const out: { rook: Square; pawn: Square }[] = []
+  const passers = [...passedPawns(chess, 'w').map((s) => ({ s, c: 'w' as Color })), ...passedPawns(chess, 'b').map((s) => ({ s, c: 'b' as Color }))]
+  for (const r of chess.findPiece({ type: 'r', color })) {
+    for (const p of passers) {
+      if (fileOf(r) !== fileOf(p.s)) continue
+      // "Behind" = on the side the pawn came from.
+      const behind = p.c === 'w' ? rankOf(r) < rankOf(p.s) : rankOf(r) > rankOf(p.s)
+      if (!behind) continue
+      // Nothing in between.
+      const lo = Math.min(rankOf(r), rankOf(p.s))
+      const hi = Math.max(rankOf(r), rankOf(p.s))
+      let clear = true
+      for (let k = lo + 1; k < hi; k++) if (chess.get(sq(fileOf(r), k)!)) clear = false
+      if (clear) out.push({ rook: r, pawn: p.s })
+    }
+  }
+  return out
+}
+
+/**
+ * Rule of the square: can the lone king catch this pawn before it queens?
+ * (Ignores other pieces; a pawn on its starting rank counts its double step.)
+ */
+export function kingCatchesPawn(chess: Chess, pawn: Square, defender: Color): boolean {
+  const p = chess.get(pawn)
+  const k = chess.findPiece({ type: 'k', color: defender })[0]
+  if (!p || p.type !== 'p' || !k) return false
+  const promoRank = p.color === 'w' ? 7 : 0
+  const startRank = p.color === 'w' ? 1 : 6
+  let pawnMoves = Math.abs(promoRank - rankOf(pawn))
+  if (rankOf(pawn) === startRank) pawnMoves--
+  const promo = sq(fileOf(pawn), promoRank)!
+  const kingMoves = Math.max(Math.abs(fileOf(k) - fileOf(promo)), Math.abs(rankOf(k) - rankOf(promo)))
+  // The king must stand on (or next to, to take the new queen) the queening square
+  // by the time the pawn gets there; moving first buys it one extra step.
+  return kingMoves <= pawnMoves + (chess.turn() === defender ? 1 : 0)
+}

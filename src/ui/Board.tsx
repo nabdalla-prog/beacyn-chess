@@ -22,6 +22,10 @@ export interface BoardProps {
   onMove?: (orig: Key, dest: Key) => void
   /** Change to force the board back in sync with `fen` (e.g. after a rejected move). */
   resetKey?: number
+  /** Called when any square is tapped (used by the visualization drills). */
+  onSelect?: (key: Key) => void
+  /** Show a–h / 1–8 labels (default true). */
+  coordinates?: boolean
 }
 
 // Coach arrow colors (Okabe–Ito palette, distinguishable with color-vision deficiency).
@@ -37,8 +41,10 @@ export function Board(props: BoardProps) {
   const el = useRef<HTMLDivElement>(null)
   const api = useRef<Api | null>(null)
   const onMove = useRef(props.onMove)
+  const onSelect = useRef(props.onSelect)
   useLayoutEffect(() => {
     onMove.current = props.onMove
+    onSelect.current = props.onSelect
   })
 
   useEffect(() => {
@@ -48,11 +54,16 @@ export function Board(props: BoardProps) {
       premovable: { enabled: false },
       drawable: { enabled: true, eraseOnMovablePieceClick: true, brushes: BRUSHES as unknown as DrawBrushes },
       movable: { free: false, showDests: true, events: { after: (o, d) => onMove.current?.(o, d) } },
+      events: { select: (k) => onSelect.current?.(k) },
+      // Coordinates are drawn once, when the board is created.
+      coordinates: props.coordinates ?? true,
     })
     return () => {
       api.current?.destroy()
       api.current = null
     }
+    // Created once; later prop changes go through api.set below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {

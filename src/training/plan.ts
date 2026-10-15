@@ -7,6 +7,7 @@ export type PlanItem =
   | { id: string; kind: 'review'; target: number; done: number }
   | { id: string; kind: 'own'; target: number; done: number }
   | { id: string; kind: 'theme'; theme: Theme; reason: string; target: number; done: number }
+  | { id: string; kind: 'openings'; target: number; done: number }
   | { id: string; kind: 'game'; target: number; done: number }
 
 export interface DailyPlan {
@@ -36,13 +37,16 @@ export interface PlanInput {
   now: number
   dueReviews: number
   ownMistakes: number
+  /** Opening lines due for review (spaced repetition). */
+  dueOpenings?: number
   weakest: SkillScore[]
 }
 
-export function buildPlan({ now, dueReviews, ownMistakes, weakest }: PlanInput): DailyPlan {
+export function buildPlan({ now, dueReviews, ownMistakes, weakest, dueOpenings = 0 }: PlanInput): DailyPlan {
   const items: PlanItem[] = []
   if (dueReviews > 0) items.push({ id: 'review', kind: 'review', target: Math.min(10, dueReviews), done: 0 })
   if (ownMistakes > 0) items.push({ id: 'own', kind: 'own', target: Math.min(5, ownMistakes), done: 0 })
+  if (dueOpenings > 0) items.push({ id: 'openings', kind: 'openings', target: Math.min(3, dueOpenings), done: 0 })
 
   // Up to two themed sets for weak skills that puzzles really train, weakest first.
   const themes: { theme: Theme; reason: string }[] = []

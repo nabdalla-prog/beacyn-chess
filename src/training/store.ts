@@ -16,13 +16,17 @@ export interface TrainingState {
   rating: number | null
   seen: string[]
   plan: DailyPlan | null
+  /** Spaced-repetition cards for opening lines, keyed by line id. */
+  openingCards: Record<string, Card>
+  /** Lessons finished. */
+  lessonsDone: string[]
 }
 
 const KEY = 'training'
 const MAX_RESULTS = 3000
 const MAX_SEEN = 4000
 
-export const emptyTraining = (): TrainingState => ({ cards: {}, results: [], rating: null, seen: [], plan: null })
+export const emptyTraining = (): TrainingState => ({ cards: {}, results: [], rating: null, seen: [], plan: null, openingCards: {}, lessonsDone: [] })
 
 export async function loadTraining(): Promise<TrainingState> {
   return { ...emptyTraining(), ...(await getKv<Partial<TrainingState>>(KEY, {})) }
@@ -47,4 +51,16 @@ export function applyAttempt(s: TrainingState, p: TrainPuzzle, a: Attempt, now: 
   const seen = s.seen.includes(p.id) ? s.seen : [...s.seen, p.id].slice(-MAX_SEEN)
   const plan = s.plan && planItem ? markProgress(s.plan, planItem) : s.plan
   return { ...s, results, cards, rating, seen, plan }
+}
+
+/** After drilling an opening line: schedule it (SM-2). No mistakes = 5, one = 2 (relearn), more = 1. */
+export function applyOpeningDrill(s: TrainingState, lineId: string, mistakes: number, now: number): TrainingState {
+  const card = s.openingCards[lineId] ?? newCard(lineId, now)
+  const quality = mistakes === 0 ? 5 : mistakes === 1 ? 2 : 1
+  const plan = s.plan ? markProgress(s.plan, 'openings') : s.plan
+  return { ...s, openingCards: { ...s.openingCards, [lineId]: reviewCard(card, quality, now) }, plan }
+}
+
+export function completeLesson(s: TrainingState, id: string): TrainingState {
+  return s.lessonsDone.includes(id) ? s : { ...s, lessonsDone: [...s.lessonsDone, id] }
 }

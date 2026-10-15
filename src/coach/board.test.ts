@@ -91,3 +91,38 @@ describe('uciLineToSan', () => {
     expect(r.fens).toHaveLength(4)
   })
 })
+
+describe('endgame facts', () => {
+  it('opposition: the side not to move has it', async () => {
+    const { opposition } = await import('./board')
+    expect(opposition(pos('4k3/8/4K3/8/8/8/8/8 b - - 0 1'))).toEqual({ kind: 'direct', holder: 'w' })
+    expect(opposition(pos('4k3/8/4K3/8/8/8/8/8 w - - 0 1'))).toEqual({ kind: 'direct', holder: 'b' })
+    expect(opposition(pos('4k3/8/8/8/4K3/8/8/8 b - - 0 1'))).toEqual({ kind: 'distant', holder: 'w' })
+    expect(opposition(pos('4k3/8/8/4K3/8/8/8/8 b - - 0 1'))).toBeNull() // two squares between
+    expect(opposition(pos('4k3/8/3K4/8/8/8/8/8 b - - 0 1'))).toBeNull() // not on a line
+  })
+  it('king centrality', async () => {
+    const { kingCentrality } = await import('./board')
+    expect(kingCentrality(pos('7k/8/8/8/4K3/8/8/8 w - - 0 1'), 'w')).toBe(0)
+    expect(kingCentrality(pos('7k/8/8/8/4K3/8/8/8 w - - 0 1'), 'b')).toBe(3)
+  })
+  it('rook behind a passed pawn (own or enemy), not in front', async () => {
+    const { rooksBehindPassedPawns } = await import('./board')
+    expect(rooksBehindPassedPawns(pos('6k1/8/8/P7/8/8/8/R5K1 w - - 0 1'), 'w')).toEqual([{ rook: 'a1', pawn: 'a5' }])
+    expect(rooksBehindPassedPawns(pos('R5k1/8/8/P7/8/8/8/6K1 w - - 0 1'), 'w')).toEqual([]) // in front
+    expect(rooksBehindPassedPawns(pos('r5k1/8/8/P7/8/8/8/6K1 b - - 0 1'), 'b')).toEqual([]) // black rook in front of the white pawn
+    expect(rooksBehindPassedPawns(pos('6k1/8/8/P7/8/8/8/r5K1 b - - 0 1'), 'b')).toEqual([{ rook: 'a1', pawn: 'a5' }]) // behind the enemy passer
+    expect(rooksBehindPassedPawns(pos('6k1/8/8/P7/8/8/N7/R5K1 w - - 0 1'), 'w')).toEqual([]) // blocked
+  })
+  it('rule of the square', async () => {
+    const { kingCatchesPawn } = await import('./board')
+    // White pawn a5 needs 3 moves. Black king on d5 is inside the square.
+    expect(kingCatchesPawn(pos('8/8/8/P2k4/8/8/8/7K w - - 0 1'), 'a5', 'b')).toBe(true)
+    // e5 is just outside: catches only if Black moves first.
+    expect(kingCatchesPawn(pos('8/8/8/P3k3/8/8/8/7K b - - 0 1'), 'a5', 'b')).toBe(true)
+    expect(kingCatchesPawn(pos('8/8/8/P3k3/8/8/8/7K w - - 0 1'), 'a5', 'b')).toBe(false)
+    // A pawn on its starting square can double-step: from a2 it needs 5 moves.
+    expect(kingCatchesPawn(pos('8/8/8/8/5k2/8/P7/7K w - - 0 1'), 'a2', 'b')).toBe(true) // f4: ...Kb7 takes the new queen
+    expect(kingCatchesPawn(pos('8/8/8/8/6k1/8/P7/7K w - - 0 1'), 'a2', 'b')).toBe(false) // g4 is one step too far
+  })
+})

@@ -220,7 +220,34 @@ desktop (1440×900) sizes, committed.
   repetition for missed puzzles, puzzle rating, daily plan, Train page with
   hint ladder and step-through solutions, one-time update for pre-M5 games,
   thin bands filled from neighbours. 144 unit tests, 24 e2e runs.
-  Next: M6.
+- **M6 — done locally (2026-10-15), not yet released.** Learn page: 16
+  lessons in 6 units (concept, board exercises judged by rule, quick check;
+  all open, "recommended next"), opening trainer (5 repertoires, 9 lines,
+  SM-2 review per line, daily-plan item), 8 endgame drills vs full-strength
+  engine, visualization drills (name the square, blindfold-lite), two-minute
+  placement for new players. New verified endgame detectors: opposition,
+  king centrality, rook behind passed pawn, rule of the square.
+  195 unit tests, 35 e2e runs + a Stockfish content check. Next: M7.
+
+### Content is verified, not asserted (M6)
+
+- Endgame drills: `e2e/content.spec.ts` runs Stockfish (depth 18) on every
+  drill and fails if a "win" isn't ≥ +4 or mate, or a "draw" isn't within
+  ±1.5. Results at time of writing: Q mate in 8, R +4.7, two rooks mate in 7,
+  K+P on the 6th +6.0, Lucena +4.8, defend K+P −0.15, square +0.1,
+  Philidor −0.09.
+- Opening lines: every move legal and each line must reach the opening name
+  the Lichess data set gives (this caught that 2.Bf4 is the *Accelerated*
+  London and corrected two names). Notes only on the user's own moves.
+- Lessons: exercises are judged by rules on the verified detectors (any
+  mating move, any fork, any move taking the opposition…). Tests prove every
+  exercise has a solution, that not every move passes, that the start isn't
+  already check, and pin the exact solution sets (e.g. back rank: only Rd8#).
+  This caught a position where White started in check.
+- Placement: one self-rating question (400 / 700 / 1100 / 1500 prior), five
+  puzzles that adapt (Elo steps 280→100), no hints ("I don't know" counts as
+  a miss). Sets coach strength (rounded to 50, 400–2000), puzzle rating and
+  coaching mode. Offered once on the home screen; can be skipped.
 
 ## Risks
 

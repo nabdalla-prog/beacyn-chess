@@ -6,6 +6,7 @@ import { todaysPlan, dayKey, type PlanItem } from '../training/plan'
 import { bandOf, loadPool, loadTheme, ownMistakePuzzles, pickPuzzles, THEME_ITEM, THEME_LABEL, THEMES, type Theme, type TrainPuzzle } from '../training/puzzles'
 import { applyAttempt, loadTraining, saveTraining, type SrsEntry, type TrainingState } from '../training/store'
 import type { GameRecord } from '../game/session'
+import { REPERTOIRES } from '../training/repertoires'
 import { listGames, loadProfile } from '../storage/db'
 
 interface Session {
@@ -43,9 +44,10 @@ export default function TrainView({ route, onPlay, onHome }: { route: TrainRoute
     const due = dueCards(Object.values(state.cards), now) as SrsEntry[]
     const events = [...games.flatMap(eventsFromGame), ...eventsFromPuzzles(state.results)]
     const weakest = weakestSkills(scoreSkills(events))
-    const plan = todaysPlan(state.plan, { now, dueReviews: due.length, ownMistakes: ownOpen.length, weakest })
+    const dueOpenings = dueCards(Object.values(state.openingCards), now)
+    const plan = todaysPlan(state.plan, { now, dueReviews: due.length, ownMistakes: ownOpen.length, weakest, dueOpenings: dueOpenings.length })
     const gamesToday = games.filter((g) => !g.imported && g.endedAt && dayKey(g.endedAt) === dayKey(now)).length
-    return { ownOpen, due, plan, gamesToday }
+    return { ownOpen, due, plan, gamesToday, dueOpenings }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, games])
 
@@ -121,6 +123,12 @@ export default function TrainView({ route, onPlay, onHome }: { route: TrainRoute
 
   const startItem = (item: PlanItem) => {
     if (item.kind === 'game') return onPlay()
+    if (item.kind === 'openings') {
+      const lineId = derived.dueOpenings[0]?.id
+      const rep = REPERTOIRES.find((r) => r.lines.some((l) => l.id === lineId)) ?? REPERTOIRES[0]
+      location.hash = `#/learn/opening/${rep.id}`
+      return
+    }
     if (item.kind === 'theme') return void startTheme(item.theme, item.target - item.done, item.id)
     if (item.kind === 'review') {
       setSession({ title: 'Puzzles to review', puzzles: derived.due.slice(0, item.target - item.done).map((c) => c.puzzle), planItem: item.id, showTheme: false })
@@ -135,7 +143,9 @@ export default function TrainView({ route, onPlay, onHome }: { route: TrainRoute
       ? `Review ${i.target} puzzle${i.target === 1 ? '' : 's'} you missed`
       : i.kind === 'own'
         ? `Fix ${i.target} of your own mistakes`
-        : i.kind === 'theme'
+        : i.kind === 'openings'
+          ? `Review ${i.target} opening line${i.target === 1 ? '' : 's'}`
+          : i.kind === 'theme'
           ? `${i.target} ${THEME_ITEM[i.theme]} puzzles`
           : 'Play a game against the coach'
   const itemWhy = (i: PlanItem) =>
@@ -143,7 +153,9 @@ export default function TrainView({ route, onPlay, onHome }: { route: TrainRoute
       ? 'Spaced repetition: these are due today.'
       : i.kind === 'own'
         ? 'Positions from your games where a better move existed.'
-        : i.kind === 'theme'
+        : i.kind === 'openings'
+          ? 'Spaced repetition keeps your repertoire fresh.'
+          : i.kind === 'theme'
           ? i.reason === 'general'
             ? 'General tactics practice.'
             : i.reason === 'blunders'
