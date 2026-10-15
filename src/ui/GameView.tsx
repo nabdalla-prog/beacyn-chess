@@ -6,7 +6,8 @@ import { Board } from './Board'
 import { PieceIcon } from './icons'
 import { levelName } from './labels'
 import { MoveBadge } from './MoveBadge'
-import { CoachPanel } from './CoachPanel'
+import { CoachPanel, CoachStrip } from './CoachPanel'
+import { NARROW, useMediaQuery } from './useMediaQuery'
 import { EvalBar } from './EvalBar'
 import { formatClock } from '../game/clock'
 import { describeResult, parseUserMove, toPgn, userScore, type Color } from '../game/session'
@@ -44,6 +45,7 @@ export function GameView({ play, coach, onNewGame }: { play: Play; coach: Coach;
   const [selected, setSelected] = useState<{ ply: number; at: number } | null>(null)
   const selectedPly = selected && selected.at === game?.moves.length ? selected.ply : null
   const moveListRef = useRef<HTMLOListElement>(null)
+  const narrow = useMediaQuery(NARROW)
 
   const lastMove = useMemo(() => pair(game?.moves.at(-1)?.uci), [game?.moves])
 
@@ -305,6 +307,7 @@ export function GameView({ play, coach, onNewGame }: { play: Play; coach: Coach;
           </div>
         )}
         {player(bottom)}
+        {narrow && !coach.warning && <CoachStrip play={play} coach={coach} selectedPly={selectedPly} />}
       </div>
 
       <aside className="side-panel">
@@ -319,7 +322,7 @@ export function GameView({ play, coach, onNewGame }: { play: Play; coach: Coach;
           {game.takebacks > 0 && <p className="muted small">Takebacks used: {game.takebacks}</p>}
         </div>
 
-        <CoachPanel play={play} coach={coach} selectedPly={selectedPly} />
+        <CoachPanel play={play} coach={coach} selectedPly={selectedPly} showLive={!narrow} />
 
         <div className="card moves-card">
           <h3 className="sr-only">Moves</h3>

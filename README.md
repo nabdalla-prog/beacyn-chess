@@ -1,6 +1,10 @@
-# Beacyn Chess
+<p align="center">
+  <img src="docs/logo.png" alt="Beacyn Chess logo: a white pawn with an amber beacon on navy" width="120" height="120">
+</p>
 
-**Play it free: https://nabdalla-prog.github.io/Beacyn-chess/**
+<h1 align="center">Beacyn Chess</h1>
+
+**Play it free: https://nabdalla-prog.github.io/beacyn-chess/**
 
 A free, open-source, visual chess coach that runs in your browser. Play against
 an engine that adapts to your level; the coach explains the game with arrows,
@@ -73,6 +77,9 @@ Beacyn Chess is built on these open-source projects. Thank you to their authors.
 | [chess.js](https://github.com/jhlywa/chess.js) by Jeff Hlywa | Chess rules, move validation, PGN and FEN | BSD-2-Clause |
 | [React](https://react.dev/) | User interface | MIT |
 | [idb](https://github.com/jakearchibald/idb) by Jake Archibald | IndexedDB storage | ISC |
+
+The [Lexend](https://www.lexend.com/) font (SIL Open Font License 1.1) is
+bundled via [Fontsource](https://fontsource.org/).
 
 Piece images: the *cburnett* set by Colin M.L. Burnett (GPLv2+), bundled with chessground.
 

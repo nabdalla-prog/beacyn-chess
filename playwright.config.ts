@@ -7,7 +7,7 @@ const launchOptions = executablePath ? { executablePath } : {}
 
 // Tests run against the production build served from the real Pages sub-path,
 // or against a deployed site when E2E_URL is set (e.g. the live GitHub Pages URL).
-const basePath = process.env.BASE_PATH ?? '/Beacyn-chess/'
+const basePath = process.env.BASE_PATH ?? '/beacyn-chess/'
 const baseURL = process.env.E2E_URL ?? `http://localhost:4173${basePath}`
 
 export default defineConfig({

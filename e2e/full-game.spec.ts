@@ -43,8 +43,8 @@ test('play a full game to the end', async ({ page }) => {
   }
 
   await expect(status).toContainText(/You won|Coach won|Draw/)
-  // Random moves against a 2500 coach always blunder at some point, so guided mode must have warned.
-  expect(warnings).toBeGreaterThan(0)
+  // (Warnings depend on how the game goes; coach.spec covers them deterministically.)
+  test.info().annotations.push({ type: 'warnings', description: String(warnings) })
   // Move-quality badges were added to the user's moves.
   await expect(page.locator('[data-testid=move-list] .badge').first()).toBeVisible()
   await expect(status).toContainText('Coach is now ≈')

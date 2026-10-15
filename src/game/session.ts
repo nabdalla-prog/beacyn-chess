@@ -218,7 +218,7 @@ export function toPgn(game: GameRecord): string {
   const chess = replay(game)
   const coach = `Coach (≈${game.rating})`
   chess.setHeader('Event', 'Beacyn Chess game')
-  chess.setHeader('Site', 'https://nabdalla-prog.github.io/Beacyn-chess/')
+  chess.setHeader('Site', 'https://nabdalla-prog.github.io/beacyn-chess/')
   chess.setHeader('Date', pgnDate(game.startedAt))
   chess.setHeader('White', game.userColor === 'w' ? 'You' : coach)
   chess.setHeader('Black', game.userColor === 'b' ? 'You' : coach)

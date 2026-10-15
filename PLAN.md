@@ -71,7 +71,7 @@ depths we use). `scripts/copy-engine.mjs` copies the two files from
 `node_modules/stockfish/bin` into `public/engine/` before `dev`/`build`, so
 the engine version is pinned by `package-lock.json`. Verified in M1: the
 worker loads and plays in Chromium at desktop and phone sizes, including when
-served from the `/Beacyn-chess/` sub-path GitHub Pages uses.
+served from the `/beacyn-chess/` sub-path GitHub Pages uses.
 
 ### Strength model (≈400 – 2500)
 
@@ -191,7 +191,7 @@ desktop (1440×900) sizes, committed.
 - **M1 — done (2026-10-14).** Play vs coach, strength 400–2500, adaptive
   rating, clocks, takebacks, promotion picker, typed moves, resume after
   reload, light/dark theme, Pages workflow. 28 unit tests, 4 e2e runs
-  (desktop + phone). Deployed to https://nabdalla-prog.github.io/Beacyn-chess/.
+  (desktop + phone). Deployed to https://nabdalla-prog.github.io/beacyn-chess/.
 - **M2 — done (2026-10-14).** Analyst engine (separate worker, cached,
   shared in-flight searches), win-% move classification, tactical and
   positional detectors, explanation builder, move badges, "See it on the

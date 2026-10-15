@@ -48,6 +48,8 @@ test('every move gets a badge and an explanation; a blunder is warned first', as
   const feedback = page.getByTestId('feedback')
   await expect(feedback).toBeVisible({ timeout: 30_000 })
   await expect(feedback.locator('.badge')).toBeVisible()
+  // On phones too, the feedback is on screen without scrolling.
+  await expect(feedback).toBeInViewport()
   await expect(page.getByTestId('status')).toContainText('Your move', { timeout: 30_000 })
 
   // Ba6 hangs the bishop to the b7 pawn (and usually the b8 knight).

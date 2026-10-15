@@ -4,7 +4,8 @@ import { NewGamePanel } from './ui/NewGamePanel'
 import { usePlay } from './ui/usePlay'
 import { useCoach } from './ui/useCoach'
 import type { Settings } from './storage/db'
-import { PieceIcon, ThemeIcon } from './ui/icons'
+import { ThemeIcon } from './ui/icons'
+import logoMark from './assets/beacyn-mark-dark-bg.svg'
 
 const THEMES: { value: Settings['theme']; label: string }[] = [
   { value: 'system', label: 'System theme' },
@@ -28,12 +29,13 @@ export default function App() {
 
   return (
     <div className="app">
+      <div className="topbar-wrap">
       <header className="topbar">
         <a className="brand" href={import.meta.env.BASE_URL}>
-          <span className="brand-mark">
-            <PieceIcon role="n" color="w" />
+          <img className="brand-mark" src={logoMark} alt="" width="34" height="34" />
+          <span className="wordmark">
+            <span className="wm-strong">Beacyn</span> Chess
           </span>
-          Beacyn Chess
         </a>
         <button
           type="button"
@@ -45,6 +47,7 @@ export default function App() {
           <ThemeIcon theme={theme.value} />
         </button>
       </header>
+      </div>
       <main>
         {!play.loaded ? (
           <p className="muted center">Loading…</p>

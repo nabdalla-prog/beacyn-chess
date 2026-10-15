@@ -30,7 +30,7 @@ jobs:
       - id: pages
         if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
-      # The repo name decides the Pages path (/Beacyn-chess/ here, or a fork's own name).
+      # The repo name decides the Pages path (/beacyn-chess/ here, or a fork's own name).
       - name: Set base path
         run: echo "BASE_PATH=/${GITHUB_REPOSITORY#*/}/" >> "$GITHUB_ENV"
       - name: End-to-end tests (builds the site and tests it from the Pages path)
