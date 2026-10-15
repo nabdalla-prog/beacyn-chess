@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { InfoLine } from '../engine/uci'
 import { importPgn } from '../game/session'
-import { initialEvals, isAnalysed, withAnalysis } from './gameAnalysis'
+import { hasUntaggedVerdicts, initialEvals, isAnalysed, withAnalysis } from './gameAnalysis'
 
 const L = (pv: string, cp: number | null, mate?: number): InfoLine[] => [
   { depth: 12, multipv: 1, score: mate != null ? { type: 'mate', value: mate } : { type: 'cp', value: cp! }, pv: pv.split(' ') },
@@ -26,8 +26,16 @@ describe('withAnalysis', () => {
     expect(done.moves[2].review?.text).toContain('allows mate in 1')
   })
 
-  it('keeps verdicts the user already saw during the game', () => {
-    const seen = { ...g, moves: g.moves.map((m, i) => (i === 0 ? { ...m, review: { cls: 'good' as const, loss: 3, concepts: [] } } : m)) }
+  it('keeps tagged verdicts the user already saw during the game', () => {
+    const seen = { ...g, moves: g.moves.map((m, i) => (i === 0 ? { ...m, review: { cls: 'good' as const, loss: 3, concepts: [], tags: [] } } : m)) }
     expect(withAnalysis(seen, evals).moves[0].review?.cls).toBe('good')
+  })
+
+  it('re-judges verdicts from before tactic tags existed', () => {
+    const old = { ...g, moves: g.moves.map((m, i) => (i === 2 ? { ...m, review: { cls: 'blunder' as const, loss: 40, concepts: ['allowed-mate'] } } : m)) }
+    expect(hasUntaggedVerdicts(old)).toBe(true)
+    const updated = withAnalysis(old, evals)
+    expect(hasUntaggedVerdicts(updated)).toBe(false)
+    expect(updated.moves[2].review?.tags).toEqual([{ motif: 'mate', outcome: 'failed-defense' }])
   })
 })

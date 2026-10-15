@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MoveBadge } from './MoveBadge'
 import { RadarChart, Sparkline } from './SkillCharts'
-import { initialEvals, isAnalysed, runAnalysis, withAnalysis, type AnalysisRun } from '../coach/gameAnalysis'
+import { hasUntaggedVerdicts, initialEvals, isAnalysed, runAnalysis, withAnalysis, type AnalysisRun } from '../coach/gameAnalysis'
 import {
   eventsFromGame,
   eventsFromPuzzles,
@@ -26,6 +26,9 @@ const shortDate = (ms: number) => new Date(ms).toLocaleDateString(undefined, { m
 
 /** Games whose user moves still lack a coach verdict (played in Silent mode or imported, not reviewed). */
 const needsAnalysis = (g: GameRecord) => !!g.result && !isAnalysed(g) && g.moves.some((m) => m.by === 'user' && !m.review)
+/** Games judged before tactic successes counted: re-judging them stops old games pulling tactic scores down. */
+const needsRetag = (g: GameRecord) => !!g.result && hasUntaggedVerdicts(g)
+const needsUpdate = (g: GameRecord) => needsAnalysis(g) || needsRetag(g)
 
 export default function SkillsView({ onOpenReview, onPlay }: { onOpenReview: (id: string, ply: number) => void; onPlay: () => void }) {
   const [games, setGames] = useState<GameRecord[] | null>(null)
@@ -56,7 +59,9 @@ export default function SkillsView({ onOpenReview, onPlay }: { onOpenReview: (id
     return { perGame, all, scores, weakest, counted, puzzleCount }
   }, [games, puzzles])
 
-  const pending = games?.filter(needsAnalysis) ?? []
+  const pending = games?.filter(needsUpdate) ?? []
+  const pendingNew = pending.filter(needsAnalysis).length
+  const pendingOld = pending.length - pendingNew
 
   const analyseAll = async () => {
     const queue = pending.slice()
@@ -108,10 +113,15 @@ export default function SkillsView({ onOpenReview, onPlay }: { onOpenReview: (id
             ) : (
               <>
                 <span className="small muted">
-                  {pending.length} game{pending.length === 1 ? ' isn’t' : 's aren’t'} analysed yet.
+                  {[
+                    pendingNew > 0 && `${pendingNew} game${pendingNew === 1 ? ' isn’t' : 's aren’t'} analysed yet.`,
+                    pendingOld > 0 && `${pendingOld} game${pendingOld === 1 ? ' was' : 's were'} judged before tactics counted what you got right.`,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
                 </span>
                 <button type="button" className="small-btn accent" onClick={() => void analyseAll()} data-testid="analyse-games">
-                  Analyse {pending.length === 1 ? 'it' : 'them'} now
+                  {pendingNew > 0 ? 'Analyse' : 'Update'} {pending.length === 1 ? 'it' : 'them'} now
                 </button>
               </>
             )}

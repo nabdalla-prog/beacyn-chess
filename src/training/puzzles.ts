@@ -93,6 +93,24 @@ export function loadTheme(theme: Theme, band: number): Promise<TrainPuzzle[]> {
   return p
 }
 
+/** A pool smaller than this gets topped up from neighbouring rating bands. */
+export const MIN_POOL = 30
+
+/**
+ * Puzzles for a theme at the user's band. Thin bands (e.g. trapped pieces
+ * below 800, where only 9 pass the quality filters) are filled with the
+ * nearest bands' puzzles — closest first — instead of repeating the same few.
+ */
+export async function loadPool(theme: Theme, band: number, load: (theme: Theme, band: number) => Promise<TrainPuzzle[]> = loadTheme): Promise<TrainPuzzle[]> {
+  const pool = [...(await load(theme, band))]
+  for (let d = 1; pool.length < MIN_POOL && d < BANDS.length; d++) {
+    for (const b of [band + d, band - d]) {
+      if (b >= 0 && b < BANDS.length && pool.length < MIN_POOL) pool.push(...(await load(theme, b)))
+    }
+  }
+  return pool
+}
+
 export function fromLichess(r: LichessRow): TrainPuzzle {
   const [setup, ...solution] = r.moves.split(' ')
   return { id: `l:${r.id}`, source: 'lichess', fen: r.fen, setup, solution, themes: r.themes, rating: r.rating }

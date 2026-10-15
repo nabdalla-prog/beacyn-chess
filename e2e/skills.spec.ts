@@ -49,3 +49,46 @@ test('skill profile: analyse games, see the radar and weakest skills, open an ex
   await page.getByRole('button', { name: '← Back' }).click()
   await expect(page.getByTestId('weakest')).toBeVisible()
 })
+
+test('games judged before tactic tags can be updated', async ({ page }) => {
+  test.setTimeout(120_000)
+  await importGame(page, GAMES[2][0], GAMES[2][1])
+  await expect(page.getByTestId('accuracy-user')).toHaveText(/^\d+%$/, { timeout: 60_000 })
+  await expect(page.getByTestId('review-summary').getByRole('progressbar')).toBeHidden({ timeout: 60_000 })
+  // Make it look like a game judged before M5: drop the tactic tags from every verdict.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('beacyn-chess')
+        open.onerror = () => reject(open.error)
+        open.onsuccess = () => {
+          const tx = open.result.transaction('games', 'readwrite')
+          const store = tx.objectStore('games')
+          const all = store.getAll()
+          all.onsuccess = () => {
+            for (const g of all.result) {
+              for (const m of g.moves) if (m.review) delete m.review.tags
+              store.put(g)
+            }
+          }
+          tx.oncomplete = () => resolve()
+        }
+      }),
+  )
+  await page.goto('./#/skills')
+  await expect(page.getByText(/judged before tactics counted what you got right/)).toBeVisible()
+  await page.getByTestId('analyse-games').click()
+  await expect(page.getByText(/judged before tactics counted/)).toBeHidden({ timeout: 60_000 })
+  // Tags are back on the stored verdicts.
+  const tagged = await page.evaluate(
+    () =>
+      new Promise<boolean>((resolve) => {
+        const open = indexedDB.open('beacyn-chess')
+        open.onsuccess = () => {
+          const all = open.result.transaction('games').objectStore('games').getAll()
+          all.onsuccess = () => resolve(all.result.every((g: { moves: { review?: { tags?: unknown } }[] }) => g.moves.every((m) => !m.review || Array.isArray(m.review.tags))))
+        }
+      }),
+  )
+  expect(tagged).toBe(true)
+})

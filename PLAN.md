@@ -213,12 +213,13 @@ desktop (1440×900) sizes, committed.
   weakest three with a real example each (distinct positions, "Show me this
   position" opens the review on that move), "Analyse them now" for games
   without verdicts. 102 unit tests, 18 e2e runs.
-- **M5 — done locally (2026-10-15), not yet released.** Tactic scores now
+- **M5 — done (2026-10-15).** Tactic scores now
   count successes (tactics found, real threats defended, clean puzzle
   solves). Curated Lichess puzzle set (5,309 puzzles, 9 themes × 6 rating
   bands, lazy-loaded), puzzles from the user's own mistakes, SM-2 spaced
   repetition for missed puzzles, puzzle rating, daily plan, Train page with
-  hint ladder and step-through solutions. 139 unit tests, 22 e2e runs.
+  hint ladder and step-through solutions, one-time update for pre-M5 games,
+  thin bands filled from neighbours. 144 unit tests, 24 e2e runs.
   Next: M6.
 
 ## Risks
@@ -295,12 +296,17 @@ desktop (1440×900) sizes, committed.
   Puzzle results also feed the motifs: a clean solve (first try, no hint) is
   a success, anything else a miss. Each day's puzzles count as one "game" for
   recency weighting, and puzzle misses are never used as example positions.
-  Verdicts stored before M5 have no tags and keep the old concept mapping.
+  Verdicts stored before M5 have no tags; the Skills page offers a one-time
+  "Update them now" that re-judges those games from their stored analysis
+  (or analyses them first), so old games stop pulling tactic scores down.
+  Until then they keep the old mistakes-only concept mapping.
 - Puzzles: the Lichess puzzle database (CC0) is streamed once through
   `scripts/build-puzzles.mjs` (300 MB compressed in, 1.1 MB out). Filters:
   rating deviation ≤ 90, popularity ≥ 85, ≥ 500 plays, ≤ 8 plies, every move
   re-checked with chess.js; 100 per theme × band chosen by hash of the id
-  (reproducible). Only 9 trapped-piece puzzles pass the filters below 800.
+  (reproducible). Only 9 trapped-piece puzzles pass the filters below 800,
+  so any band with fewer than 30 puzzles is topped up from the nearest bands
+  (closest first) rather than repeating the same few.
   Any checkmating move is accepted (like Lichess); own-mistake puzzles also
   accept any move the engine rates Good or better.
 - SM-2 grading: clean solve 5, hint level 1 → 4, level 2 → 3; any wrong move,

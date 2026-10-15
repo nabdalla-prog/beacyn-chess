@@ -13,7 +13,17 @@ export function isAnalysed(game: GameRecord): boolean {
   return initialEvals(game).every(Boolean)
 }
 
-/** The game with stored evals and, once complete, a coach verdict on every user move that lacks one. */
+/** User moves judged before tactic tags existed (M5): their verdicts count only mistakes. */
+export function hasUntaggedVerdicts(game: GameRecord): boolean {
+  return game.moves.some((m) => m.by === 'user' && m.review && !m.review.tags)
+}
+
+/**
+ * The game with stored evals and, once complete, a coach verdict on every user
+ * move that lacks one — or that was judged before tactic tags existed, so old
+ * games stop pulling tactic scores down. Verdicts that already have tags (what
+ * the user saw live) are kept.
+ */
 export function withAnalysis(game: GameRecord, evals: (InfoLine[] | null)[]): GameRecord {
   // undefined = not analysed yet, null = no engine line (game over).
   const stored: (StoredEval | null | undefined)[] = evals.map((l) => (l ? toStored(l) : undefined))
@@ -22,7 +32,7 @@ export function withAnalysis(game: GameRecord, evals: (InfoLine[] | null)[]): Ga
     const review = buildReview(game, evals)
     moves = game.moves.map((m, i) => {
       const r = review.moves[i]
-      if (m.by !== 'user' || m.review || !r) return m
+      if (m.by !== 'user' || m.review?.tags || !r) return m
       const e = r.explanation
       return { ...m, review: { cls: e.cls, loss: Math.round(e.loss * 10) / 10, best: e.bestUci, concepts: e.concepts, text: e.text, tags: e.tags } }
     })

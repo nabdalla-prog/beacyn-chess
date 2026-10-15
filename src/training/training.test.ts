@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Chess } from 'chess.js'
 import { DAY, dueCards, isClean, newCard, qualityOf, reviewCard } from './srs'
-import { bandOf, checkMove, fromLichess, nextPuzzleRating, ownMistakePuzzles, pickPuzzles, startPosition, type TrainPuzzle } from './puzzles'
+import { bandOf, checkMove, loadPool, MIN_POOL, fromLichess, nextPuzzleRating, ownMistakePuzzles, pickPuzzles, startPosition, type TrainPuzzle } from './puzzles'
 import { buildPlan, dayKey, markProgress, planDone, todaysPlan } from './plan'
 import { importPgn } from '../game/session'
 import type { SkillScore } from '../coach/skills'
@@ -144,5 +144,32 @@ describe('training progress', () => {
     const s = applyAttempt(emptyTraining(), p, { solved: true, wrongTries: 0, hintLevel: 0, revealed: false }, now, 800)
     expect(s.cards).toEqual({})
     expect(s.rating).toBeGreaterThan(800)
+  })
+})
+
+describe('thin puzzle bands', () => {
+  const fake = (counts: number[]) => async (_theme: string, band: number): Promise<TrainPuzzle[]> =>
+    Array.from({ length: counts[band] ?? 0 }, (_, i) => ({ id: `b${band}-${i}`, source: 'lichess' as const, fen: new Chess().fen(), solution: ['e2e4'], themes: ['trappedPiece'], rating: [600, 800, 1100, 1400, 1700, 2000][band] + i }))
+
+  it('tops up a thin band with the nearest band, closest first', async () => {
+    const pool = await loadPool('trappedPiece', 0, fake([9, 100, 100, 100, 100, 100]))
+    expect(pool.length).toBeGreaterThanOrEqual(MIN_POOL)
+    expect(pool.filter((p) => p.id.startsWith('b0-'))).toHaveLength(9)
+    expect(pool.some((p) => p.id.startsWith('b1-'))).toBe(true)
+    expect(pool.some((p) => p.id.startsWith('b2-'))).toBe(false)
+  })
+  it('a 700-rated user sees all 9 easy ones first, then the next easiest, no repeats', async () => {
+    const pool = await loadPool('trappedPiece', 0, fake([9, 100, 100, 100, 100, 100]))
+    const picked = pickPuzzles(pool, 700, new Set(), 20)
+    expect(new Set(picked.map((p) => p.id)).size).toBe(20)
+    expect(picked.filter((p) => p.id.startsWith('b0-'))).toHaveLength(9)
+  })
+  it('a full band is left alone', async () => {
+    const pool = await loadPool('fork', 2, fake([100, 100, 100, 100, 100, 100]))
+    expect(pool.every((p) => p.id.startsWith('b2-'))).toBe(true)
+  })
+  it('the top band borrows from below', async () => {
+    const pool = await loadPool('fork', 5, fake([100, 100, 100, 100, 100, 5]))
+    expect(pool.some((p) => p.id.startsWith('b4-'))).toBe(true)
   })
 })

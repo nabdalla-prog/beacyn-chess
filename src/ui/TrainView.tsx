@@ -3,7 +3,7 @@ import { PuzzleSession } from './PuzzleSession'
 import { eventsFromGame, eventsFromPuzzles, scoreSkills, SKILL_INFO, weakestSkills } from '../coach/skills'
 import { dueCards, type Attempt } from '../training/srs'
 import { todaysPlan, dayKey, type PlanItem } from '../training/plan'
-import { bandOf, loadTheme, ownMistakePuzzles, pickPuzzles, THEME_ITEM, THEME_LABEL, THEMES, type Theme, type TrainPuzzle } from '../training/puzzles'
+import { bandOf, loadPool, loadTheme, ownMistakePuzzles, pickPuzzles, THEME_ITEM, THEME_LABEL, THEMES, type Theme, type TrainPuzzle } from '../training/puzzles'
 import { applyAttempt, loadTraining, saveTraining, type SrsEntry, type TrainingState } from '../training/store'
 import type { GameRecord } from '../game/session'
 import { listGames, loadProfile } from '../storage/db'
@@ -74,7 +74,7 @@ export default function TrainView({ route, onPlay, onHome }: { route: TrainRoute
     async (theme: Theme, count: number, planItem?: string) => {
       setError('')
       try {
-        const pool = await loadTheme(theme, bandOf(rating))
+        const pool = await loadPool(theme, bandOf(rating))
         const puzzles = pickPuzzles(pool, rating, new Set(state?.seen ?? []), count)
         setSession({ title: THEME_LABEL[theme], puzzles, planItem, showTheme: true })
       } catch {
