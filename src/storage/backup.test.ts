@@ -132,10 +132,16 @@ describe('parseBackup: hostile files', () => {
     expect(r.ok && r.data.settings.ai).toEqual({ provider: 'off' })
   })
   it('deeply nested junk does not crash', () => {
-    let deep: unknown = 1
-    for (let i = 0; i < 5000; i++) deep = [deep]
-    const r = parseBackup(file({ ...data(), games: [{ ...game('g'), analysis: { depth: 12, evals: deep } }] }))
-    expect(r.ok).toBe(true)
+    // Built as text: JSON.stringify itself would overflow on nesting this deep.
+    const deep = (n: number) => '['.repeat(n) + '1' + ']'.repeat(n)
+    const inGame = file({ ...data(), games: [{ ...game('g'), analysis: { depth: 12, evals: 'DEEP' } }] }).replace('"DEEP"', deep(5000))
+    const r = parseBackup(inGame)
+    expect(r.ok && r.skipped).toEqual(['1 games'])
+    // Far deeper still: whatever the JSON parser does with it, nothing throws and no game gets in.
+    const huge = file({ ...data(), games: 'DEEP' }).replace('"DEEP"', deep(200_000))
+    expect(() => parseBackup(huge)).not.toThrow()
+    const h = parseBackup(huge)
+    expect(h.ok ? h.data.games : []).toEqual([])
   })
   it('numbers outside sane ranges are refused', () => {
     const r = parseBackup(file({ ...data(), profile: { rating: 1e9, gamesPlayed: 1, ratingHistory: [] } }))
