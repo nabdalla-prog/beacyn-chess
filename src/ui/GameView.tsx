@@ -6,6 +6,7 @@ import { Board } from './Board'
 import { PieceIcon, NavIcon } from './icons'
 import { levelName } from './labels'
 import { MoveBadge } from './MoveBadge'
+import { CLASS_INFO } from '../coach/classify'
 import { CoachPanel, CoachStrip } from './CoachPanel'
 import { NARROW, useMediaQuery } from './useMediaQuery'
 import { EvalBar } from './EvalBar'
@@ -50,7 +51,9 @@ export function GameView({ play, coach, onNewGame, onReview }: { play: Play; coa
   const lastMove = useMemo(() => pair(game?.moves.at(-1)?.uci), [game?.moves])
 
   useEffect(() => {
-    moveListRef.current?.lastElementChild?.scrollIntoView({ block: 'nearest' })
+    // Scroll only the list (scrollIntoView would also scroll the page away from the board on phones).
+    const list = moveListRef.current
+    if (list) list.scrollTop = list.scrollHeight
   }, [game?.moves.length])
 
   // Arrow keys step through a line being shown.
@@ -402,9 +405,9 @@ export function GameView({ play, coach, onNewGame, onReview }: { play: Play; coa
         </div>
       </aside>
 
-      <div className="sr-only" aria-live="polite">
+      <div className="sr-only" aria-live="polite" data-testid="announcer">
         {play.announcement}
-        {coach.latest && !coach.pendingFeedback ? ` ${coach.latest.san}: ${coach.latest.cls}. ${coach.latest.text}` : ''}
+        {coach.latest && !coach.pendingFeedback ? ` Coach: ${coach.latest.san} was ${CLASS_INFO[coach.latest.cls].label}. ${coach.latest.text}` : ''}
         {coach.warning ? ` ${coach.warning.warning.text}` : ''}
       </div>
     </div>

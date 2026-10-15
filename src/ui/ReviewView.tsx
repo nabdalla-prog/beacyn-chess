@@ -51,7 +51,7 @@ export default function ReviewView({ game: initial, initialPly = null, onBack }:
     const el = boardRef.current
     if (!el) return
     const r = el.getBoundingClientRect()
-    if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   }
 
   const go = useCallback(

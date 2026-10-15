@@ -3,6 +3,7 @@ import { Chess, type Square } from 'chess.js'
 import type { DrawShape } from '@lichess-org/chessground/draw'
 import type { Key, SquareClasses } from '@lichess-org/chessground/types'
 import { Board } from './Board'
+import { playSound } from './sound'
 import { analyse } from '../coach/analyst'
 import { regionOf, regionSquares, PIECE_NAME } from '../coach/board'
 import { classifyMove, isError, CLASS_INFO } from '../coach/classify'
@@ -44,6 +45,10 @@ export function PuzzleSession({ title, puzzles, showTheme, onAttempt, onExit, on
   const [fen, setFen] = useState(p?.fen ?? '')
   const [step, setStep] = useState(0)
   const [status, setStatus] = useState<Status>('setup')
+  useEffect(() => {
+    if (status === 'solved') playSound('right')
+    else if (status === 'wrong') playSound('wrong')
+  }, [status])
   const [message, setMessage] = useState('')
   const [last, setLast] = useState<Key[] | undefined>()
   const [shapes, setShapes] = useState<DrawShape[]>([])

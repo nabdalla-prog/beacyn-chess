@@ -1,0 +1,3 @@
+Sound effects by Kenney (www.kenney.nl), CC0 1.0 (public domain dedication).
+From "Impact Sounds" (move, capture, check, castle) and "Interface Sounds" (end, right, wrong).
+Trimmed, mixed and loudness-matched by scripts/build-sounds.sh.

@@ -23,6 +23,8 @@ import {
   type MoveRecord,
   type MoveReview,
 } from '../game/session'
+import { describeMove } from '../game/speech'
+import { playSound } from './sound'
 import { pressClock, remaining, startClock, stopClock, type ClockState } from '../game/clock'
 import {
   DEFAULT_PROFILE,
@@ -127,6 +129,7 @@ export function usePlay() {
   const finish = useCallback(
     (g: GameRecord, result: GameResult) => {
       const done: GameRecord = { ...g, result, endedAt: Date.now() }
+      setTimeout(() => playSound('end'), 350) // after the last move's own sound
       const score = userScore(done)!
       const p = profile
       const after = settings.adaptive ? nextRating(g.rating, score, p.gamesPlayed) : g.rating
@@ -165,8 +168,7 @@ export function usePlay() {
         setClock(nextClock)
       }
       const next: GameRecord = { ...g, moves: [...g.moves, rec] }
-      const who = by === 'user' ? 'You played' : 'Coach played'
-      setAnnouncement(`${who} ${mv.san}${c.isCheck() ? ', check' : ''}.`)
+      setAnnouncement(`${by === 'user' ? 'You' : 'Coach'}: ${describeMove(mv)}.`)
       const over = detectGameOver(c)
       if (over) finish(next, over)
       else {

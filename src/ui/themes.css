@@ -1,0 +1,134 @@
+/* Board and piece themes. Classes on <html> (board-*, pieces-*) pick them; previews put them on their own wrapper. */
+/* Squares: a 2x2 conic-gradient tile repeated 4x4, so no image is needed. a8 (top left) is a light square. */
+.board-beacyn cg-board,
+.board-beacyn.board-preview {
+  background: conic-gradient(#8d99b3 0 25%, #ece8dd 0 50%, #8d99b3 0 75%, #ece8dd 0) 0 0 / 25% 25%;
+}
+.board-brown cg-board,
+.board-brown.board-preview {
+  background: conic-gradient(#b58863 0 25%, #f0d9b5 0 50%, #b58863 0 75%, #f0d9b5 0) 0 0 / 25% 25%;
+}
+.board-green cg-board,
+.board-green.board-preview {
+  background: conic-gradient(#769656 0 25%, #eeeed2 0 50%, #769656 0 75%, #eeeed2 0) 0 0 / 25% 25%;
+}
+.board-blue cg-board,
+.board-blue.board-preview {
+  background: conic-gradient(#8ca2ad 0 25%, #dee3e6 0 50%, #8ca2ad 0 75%, #dee3e6 0) 0 0 / 25% 25%;
+}
+/* Brand board: amber for the last move and the selected piece. */
+.board-beacyn cg-board square.last-move {
+  background-color: rgb(245 166 35 / 42%);
+}
+.board-beacyn cg-board square.selected {
+  background-color: rgb(245 166 35 / 62%);
+}
+.pieces-merida .cg-wrap piece.pawn.white,
+.cg-wrap.pieces-merida piece.pawn.white {
+  background-image: url('/pieces/merida/wP.svg');
+}
+.pieces-merida .cg-wrap piece.knight.white,
+.cg-wrap.pieces-merida piece.knight.white {
+  background-image: url('/pieces/merida/wN.svg');
+}
+.pieces-merida .cg-wrap piece.bishop.white,
+.cg-wrap.pieces-merida piece.bishop.white {
+  background-image: url('/pieces/merida/wB.svg');
+}
+.pieces-merida .cg-wrap piece.rook.white,
+.cg-wrap.pieces-merida piece.rook.white {
+  background-image: url('/pieces/merida/wR.svg');
+}
+.pieces-merida .cg-wrap piece.queen.white,
+.cg-wrap.pieces-merida piece.queen.white {
+  background-image: url('/pieces/merida/wQ.svg');
+}
+.pieces-merida .cg-wrap piece.king.white,
+.cg-wrap.pieces-merida piece.king.white {
+  background-image: url('/pieces/merida/wK.svg');
+}
+.pieces-merida .cg-wrap piece.pawn.black,
+.cg-wrap.pieces-merida piece.pawn.black {
+  background-image: url('/pieces/merida/bP.svg');
+}
+.pieces-merida .cg-wrap piece.knight.black,
+.cg-wrap.pieces-merida piece.knight.black {
+  background-image: url('/pieces/merida/bN.svg');
+}
+.pieces-merida .cg-wrap piece.bishop.black,
+.cg-wrap.pieces-merida piece.bishop.black {
+  background-image: url('/pieces/merida/bB.svg');
+}
+.pieces-merida .cg-wrap piece.rook.black,
+.cg-wrap.pieces-merida piece.rook.black {
+  background-image: url('/pieces/merida/bR.svg');
+}
+.pieces-merida .cg-wrap piece.queen.black,
+.cg-wrap.pieces-merida piece.queen.black {
+  background-image: url('/pieces/merida/bQ.svg');
+}
+.pieces-merida .cg-wrap piece.king.black,
+.cg-wrap.pieces-merida piece.king.black {
+  background-image: url('/pieces/merida/bK.svg');
+}
+.pieces-chessnut .cg-wrap piece.pawn.white,
+.cg-wrap.pieces-chessnut piece.pawn.white {
+  background-image: url('/pieces/chessnut/wP.svg');
+}
+.pieces-chessnut .cg-wrap piece.knight.white,
+.cg-wrap.pieces-chessnut piece.knight.white {
+  background-image: url('/pieces/chessnut/wN.svg');
+}
+.pieces-chessnut .cg-wrap piece.bishop.white,
+.cg-wrap.pieces-chessnut piece.bishop.white {
+  background-image: url('/pieces/chessnut/wB.svg');
+}
+.pieces-chessnut .cg-wrap piece.rook.white,
+.cg-wrap.pieces-chessnut piece.rook.white {
+  background-image: url('/pieces/chessnut/wR.svg');
+}
+.pieces-chessnut .cg-wrap piece.queen.white,
+.cg-wrap.pieces-chessnut piece.queen.white {
+  background-image: url('/pieces/chessnut/wQ.svg');
+}
+.pieces-chessnut .cg-wrap piece.king.white,
+.cg-wrap.pieces-chessnut piece.king.white {
+  background-image: url('/pieces/chessnut/wK.svg');
+}
+.pieces-chessnut .cg-wrap piece.pawn.black,
+.cg-wrap.pieces-chessnut piece.pawn.black {
+  background-image: url('/pieces/chessnut/bP.svg');
+}
+.pieces-chessnut .cg-wrap piece.knight.black,
+.cg-wrap.pieces-chessnut piece.knight.black {
+  background-image: url('/pieces/chessnut/bN.svg');
+}
+.pieces-chessnut .cg-wrap piece.bishop.black,
+.cg-wrap.pieces-chessnut piece.bishop.black {
+  background-image: url('/pieces/chessnut/bB.svg');
+}
+.pieces-chessnut .cg-wrap piece.rook.black,
+.cg-wrap.pieces-chessnut piece.rook.black {
+  background-image: url('/pieces/chessnut/bR.svg');
+}
+.pieces-chessnut .cg-wrap piece.queen.black,
+.cg-wrap.pieces-chessnut piece.queen.black {
+  background-image: url('/pieces/chessnut/bQ.svg');
+}
+.pieces-chessnut .cg-wrap piece.king.black,
+.cg-wrap.pieces-chessnut piece.king.black {
+  background-image: url('/pieces/chessnut/bK.svg');
+}
+/* Coordinates readable on the brand board: white on slate squares, navy on light squares. */
+.board-beacyn .orientation-white .ranks :nth-child(odd),
+.board-beacyn .orientation-white .files :nth-child(even),
+.board-beacyn .orientation-black .ranks :nth-child(even),
+.board-beacyn .orientation-black .files :nth-child(odd) {
+  color: #fff;
+}
+.board-beacyn .orientation-white .ranks :nth-child(even),
+.board-beacyn .orientation-white .files :nth-child(odd),
+.board-beacyn .orientation-black .ranks :nth-child(odd),
+.board-beacyn .orientation-black .files :nth-child(even) {
+  color: #3d4866;
+}

@@ -50,7 +50,7 @@ function SquareDrill() {
   return (
     <>
       <div className="board-stage">
-        <Board key={orientation} fen={EMPTY} orientation={orientation} turnColor="white" coordinates={false} highlights={flash} onSelect={tap} />
+        <Board key={orientation} fen={EMPTY} orientation={orientation} turnColor="white" coordinates={false} highlights={flash} onSelect={tap} announceSquares={false} label="Empty board" />
       </div>
       <div className="callout puzzle-card" data-testid="vis-squares" aria-live="polite">
         {!done ? (

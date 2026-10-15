@@ -1,0 +1,6 @@
+Piece sets (taken from the Lichess repository, lichess-org/lila, public/piece/):
+
+merida/    Armando Hernandez Marroquin — GPLv2 or later
+chessnut/  Alexis Luengas (https://github.com/LexLuengas/chessnut-pieces) — Apache License 2.0, see chessnut/LICENSE.txt
+
+The default "cburnett" set by Colin M.L. Burnett (GPLv2 or later) ships inside @lichess-org/chessground.

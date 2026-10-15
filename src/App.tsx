@@ -9,7 +9,10 @@ import { ImportPgn, RecentGames } from './ui/HomeExtras'
 import type { TrainRoute } from './ui/TrainView'
 import type { LearnRoute } from './ui/LearnView'
 import { THEMES as PUZZLE_THEMES, type Theme } from './training/puzzles'
-import { ThemeIcon } from './ui/icons'
+import { SettingsIcon, ThemeIcon } from './ui/icons'
+import { applyBoardLook } from './ui/themes'
+import { setSoundEnabled, soundDefault } from './ui/sound'
+import './ui/themes.css'
 import logoMark from './assets/beacyn-mark-dark-bg.svg'
 
 // The review screen (and its chart and opening data) loads only when needed.
@@ -18,10 +21,15 @@ const SkillsView = lazy(() => import('./ui/SkillsView'))
 const TrainView = lazy(() => import('./ui/TrainView'))
 const LearnView = lazy(() => import('./ui/LearnView'))
 const WelcomeView = lazy(() => import('./ui/WelcomeView'))
+const SettingsView = lazy(() => import('./ui/SettingsView'))
+const ProgressView = lazy(() => import('./ui/ProgressView'))
+const ProgressCard = lazy(() => import('./ui/ProgressView').then((m) => ({ default: m.ProgressCard })))
 
 type Route = { page: 'home' } | { page: 'skills' } | { page: 'review'; id: string; ply: number | null } | { page: 'train'; train: TrainRoute }
   | { page: 'learn'; learn: LearnRoute }
   | { page: 'welcome' }
+  | { page: 'settings' }
+  | { page: 'progress' }
 
 /** Tiny hash router: "#/review/<gameId>[/<ply>]", "#/skills" or home. Keeps the back button working. */
 function useHashRoute(): Route {
@@ -36,6 +44,8 @@ function useHashRoute(): Route {
   if (m) return { page: 'review', id: m[1], ply: m[2] != null ? Number(m[2]) : null }
   if (hash === '#/skills') return { page: 'skills' }
   if (hash === '#/welcome') return { page: 'welcome' }
+  if (hash === '#/settings') return { page: 'settings' }
+  if (hash === '#/progress') return { page: 'progress' }
   const l = /^#\/learn(?:\/(lesson|opening|endgame|vis)\/([\w-]+))?$/.exec(hash)
   if (l) {
     if (!l[1]) return { page: 'learn', learn: { kind: 'home' } }
@@ -113,6 +123,9 @@ export default function App() {
     else root.dataset.theme = settings.theme
   }, [settings.theme])
 
+  useEffect(() => applyBoardLook(settings.boardTheme, settings.pieceSet), [settings.boardTheme, settings.pieceSet])
+  useEffect(() => setSoundEnabled(settings.sound ?? soundDefault()), [settings.sound])
+
   const theme = THEMES.find((t) => t.value === settings.theme) ?? THEMES[0]
   const nextTheme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]
 
@@ -150,6 +163,16 @@ export default function App() {
         >
           <ThemeIcon theme={theme.value} />
         </button>
+        <a
+          className="icon-btn"
+          href="#/settings"
+          aria-label="Settings"
+          title="Settings"
+          aria-current={route.page === 'settings' ? 'page' : undefined}
+          onClick={() => (navigatedInApp = true)}
+        >
+          <SettingsIcon />
+        </a>
       </header>
       </div>
       <main>
@@ -164,6 +187,14 @@ export default function App() {
         ) : route.page === 'learn' ? (
           <Suspense fallback={<p className="muted center">Loading…</p>}>
             <LearnView key={JSON.stringify(route.learn)} route={route.learn} />
+          </Suspense>
+        ) : route.page === 'settings' ? (
+          <Suspense fallback={<p className="muted center">Loading…</p>}>
+            <SettingsView settings={settings} onSettings={setSettings} onDataChanged={play.refresh} />
+          </Suspense>
+        ) : route.page === 'progress' ? (
+          <Suspense fallback={<p className="muted center">Loading…</p>}>
+            <ProgressView />
           </Suspense>
         ) : route.page === 'welcome' ? (
           <Suspense fallback={<p className="muted center">Loading…</p>}>
@@ -220,6 +251,9 @@ export default function App() {
                 </div>
               </section>
             )}
+            <Suspense fallback={null}>
+              <ProgressCard />
+            </Suspense>
             <NewGamePanel key={play.profile.rating} profile={play.profile} settings={settings} onSettings={setSettings} onStart={play.start} />
             <RecentGames onReview={openReview} />
             <ImportPgn onImported={openReview} />

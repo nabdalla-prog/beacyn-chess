@@ -36,7 +36,7 @@ export default function LearnView({ route }: { route: LearnRoute }) {
   }
   if (route.kind === 'endgame') {
     const drill = DRILLS.find((d) => d.id === route.id)
-    if (drill) return <EndgameDrillView drill={drill} onBack={back} />
+    if (drill) return <EndgameDrillView drill={drill} onBack={back} update={update} />
   }
   if (route.kind === 'vis') return <VisualizationView mode={route.mode} onBack={back} />
 

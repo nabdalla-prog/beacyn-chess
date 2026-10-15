@@ -17,6 +17,8 @@ export default defineConfig({
   use: {
     baseURL,
     trace: 'retain-on-failure',
+    // The offline test turns the service worker on itself; elsewhere it would only add caching noise.
+    serviceWorkers: 'block',
   },
   webServer: process.env.E2E_URL
     ? undefined

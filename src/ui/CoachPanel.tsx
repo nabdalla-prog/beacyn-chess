@@ -1,4 +1,8 @@
+import { useState } from 'react'
 import { MoveBadge } from './MoveBadge'
+import { CLASS_INFO } from '../coach/classify'
+import { useAiNote } from '../ai/useAiNote'
+import type { AiSettings } from '../ai/types'
 import type { CoachMode } from '../game/session'
 import type { Explanation } from '../coach/explain'
 import type { usePlay } from './usePlay'
@@ -15,14 +19,22 @@ const MODES: { value: CoachMode; label: string; help: string }[] = [
 
 const HINT_STEPS = ['Where to look', 'Which piece', 'The move', 'Why it works']
 
-function Feedback({ fb, coach, compact }: { fb: Explanation; coach: Coach; compact: boolean }) {
+function Feedback({ fb, coach, compact, ai }: { fb: Explanation; coach: Coach; compact: boolean; ai: AiSettings }) {
+  const aiText = useAiNote({ san: fb.san, verdict: CLASS_INFO[fb.cls].label, text: fb.text }, ai)
+  const [original, setOriginal] = useState(false)
+  const showAi = aiText && !original
   return (
     <div className="feedback" data-testid="feedback">
       <p className="feedback-head">
         <MoveBadge cls={fb.cls} label />
         <span className="feedback-move">{fb.san}</span>
       </p>
-      <p className={`feedback-text ${compact ? 'clamp' : ''}`}>{fb.text}</p>
+      <p className={`feedback-text ${compact ? 'clamp' : ''}`}>{showAi ? aiText : fb.text}</p>
+      {aiText && (
+        <button type="button" className="link tiny-link" onClick={() => setOriginal((o) => !o)} data-testid="ai-toggle">
+          {original ? 'Show friendlier wording' : 'Reworded by AI · show the coach’s words'}
+        </button>
+      )}
       <div className="row wrap">
         {fb.frames.slice(0, compact ? 1 : 2).map((f, i) => (
           <button key={i} type="button" className="small-btn" onClick={() => coach.showFrame(f)}>
@@ -70,7 +82,7 @@ function LiveCoaching({ play, coach, selectedPly, compact }: { play: Play; coach
           Looking at your move…
         </p>
       ) : fb ? (
-        <Feedback fb={fb} coach={coach} compact={compact} />
+        <Feedback key={`${fb.san}|${fb.text}`} fb={fb} coach={coach} compact={compact} ai={play.settings.ai} />
       ) : (
         <p className="muted small">{compact ? 'Make a move — the coach will comment on it here.' : MODES.find((m) => m.value === play.settings.coachMode)?.help}</p>
       )}

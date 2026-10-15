@@ -2,6 +2,8 @@
 // If IndexedDB is unavailable (some private modes) we fall back to memory.
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type { CoachMode, GameRecord } from '../game/session'
+import type { BoardTheme, PieceSet } from '../ui/themes'
+import type { AiSettings } from '../ai/types'
 
 export interface Profile {
   /** Opponent strength / user's estimated rating. */
@@ -16,10 +18,24 @@ export interface Settings {
   timeControl: number // index into TIME_CONTROLS
   adaptive: boolean
   coachMode: CoachMode
+  /** Undefined until the user chooses; then the default depends on reduced motion. */
+  sound?: boolean
+  boardTheme: BoardTheme
+  pieceSet: PieceSet
+  ai: AiSettings
 }
 
 export const DEFAULT_PROFILE: Profile = { rating: 800, gamesPlayed: 0, ratingHistory: [] }
-export const DEFAULT_SETTINGS: Settings = { theme: 'system', userColor: 'w', timeControl: 0, adaptive: true, coachMode: 'guided' }
+export const DEFAULT_SETTINGS: Settings = {
+  theme: 'system',
+  userColor: 'w',
+  timeControl: 0,
+  adaptive: true,
+  coachMode: 'guided',
+  boardTheme: 'beacyn',
+  pieceSet: 'cburnett',
+  ai: { provider: 'off' },
+}
 
 interface CoachDB extends DBSchema {
   games: { key: string; value: GameRecord; indexes: { startedAt: number } }
@@ -30,7 +46,7 @@ const DB_NAME = 'beacyn-chess'
 const DB_VERSION = 1
 
 let dbPromise: Promise<IDBPDatabase<CoachDB> | null> | null = null
-const memory = { games: new Map<string, GameRecord>(), kv: new Map<string, unknown>() }
+const memory: { games: Map<string, GameRecord>; kv: Map<string, unknown> } = { games: new Map<string, GameRecord>(), kv: new Map<string, unknown>() }
 
 function db(): Promise<IDBPDatabase<CoachDB> | null> {
   dbPromise ??= openDB<CoachDB>(DB_NAME, DB_VERSION, {
@@ -93,3 +109,19 @@ export const loadSettings = async () => ({ ...DEFAULT_SETTINGS, ...(await getKv<
 export const saveSettings = (s: Settings) => setKv('settings', s)
 export const loadCurrentGame = () => getKv<GameRecord | null>('currentGame', null)
 export const saveCurrentGame = (g: GameRecord | null) => (g ? setKv('currentGame', g) : deleteKv('currentGame'))
+
+/** Replaces every saved game (used by "Import → Replace"). */
+export async function replaceGames(games: GameRecord[]): Promise<void> {
+  const d = await db()
+  if (!d) {
+    memory.games = new Map(games.map((g) => [g.id, g]))
+    return
+  }
+  const tx = d.transaction('games', 'readwrite')
+  await tx.store.clear()
+  for (const g of games) await tx.store.put(g)
+  await tx.done
+}
+
+export const loadBadges = () => getKv<Record<string, number>>('badges', {})
+export const saveBadges = (b: Record<string, number>) => setKv('badges', b)

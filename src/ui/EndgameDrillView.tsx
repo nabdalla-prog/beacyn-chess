@@ -9,6 +9,7 @@ import { REVIEW_DEPTH } from '../coach/review'
 import { formatScore, type Score } from '../engine/uci'
 import { legalDests } from '../game/session'
 import { judgeDrill, type DrillStatus, type EndgameDrill } from '../training/endgames'
+import { recordDrill, type TrainingState } from '../training/store'
 
 const neg = (s: Score): Score => ({ type: s.type, value: -s.value })
 
@@ -22,7 +23,7 @@ function factAbout(before: Chess, after: Chess, user: 'w' | 'b', movedPiece: str
   return null
 }
 
-export function EndgameDrillView({ drill, onBack }: { drill: EndgameDrill; onBack: () => void }) {
+export function EndgameDrillView({ drill, onBack, update }: { drill: EndgameDrill; onBack: () => void; update: (fn: (s: TrainingState) => TrainingState) => void }) {
   const user = new Chess(drill.fen).turn()
   const [fen, setFen] = useState(drill.fen)
   const [last, setLast] = useState<Key[] | undefined>()
@@ -88,6 +89,7 @@ export function EndgameDrillView({ drill, onBack }: { drill: EndgameDrill; onBac
     if (verdict.state !== 'playing' || !lines?.[0]) {
       setThinking(false)
       setStatus(verdict)
+      if (verdict.state !== 'playing') update((s) => recordDrill(s, { id: drill.id, won: verdict.state === 'won', mate: after.isCheckmate(), at: Date.now() }))
       return
     }
     // The engine answers with its best move.
@@ -100,7 +102,10 @@ export function EndgameDrillView({ drill, onBack }: { drill: EndgameDrill; onBac
       setLast([reply.slice(0, 2) as Key, reply.slice(2, 4) as Key])
       setThinking(false)
       const v2 = judgeDrill(drill, user, next, next.isGameOver() ? null : userScore, moves, promoted.current)
-      if (v2.state !== 'playing') setStatus(v2)
+      if (v2.state !== 'playing') {
+        setStatus(v2)
+        update((s) => recordDrill(s, { id: drill.id, won: v2.state === 'won', mate: false, at: Date.now() }))
+      }
     }, 400)
   }
 

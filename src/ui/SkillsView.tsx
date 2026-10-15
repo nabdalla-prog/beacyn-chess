@@ -98,7 +98,12 @@ export default function SkillsView({ onOpenReview, onPlay }: { onOpenReview: (id
   return (
     <div className="skills">
       <section className="card skills-head">
-        <h2>Your skills</h2>
+        <div className="row spread wrap">
+          <h2>Your skills</h2>
+          <a href="#/progress" className="small">
+            Streak & badges →
+          </a>
+        </div>
         <p className="muted small">
           {empty
             ? 'Play a game with coaching on (Hints or Guided), or review a game, and your skill profile appears here.'
