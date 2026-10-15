@@ -43,6 +43,7 @@ test('drag a piece on the board', async ({ page }) => {
   // e2 -> e4 by clicking from-square then to-square (white at bottom). Positions are
   // relative to the board, so a scroll between the two clicks doesn't matter.
   await board.click({ position: { x: sq * 4.5, y: sq * 6.5 } })
+  await expect(page.locator('cg-board square.selected')).toHaveCount(1) // like a person: see it picked up, then tap
   await board.click({ position: { x: sq * 4.5, y: sq * 4.5 } })
   await expect(page.getByTestId('move-list')).toContainText('e4')
 })
