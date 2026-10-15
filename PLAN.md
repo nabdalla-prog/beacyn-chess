@@ -157,10 +157,28 @@ position from the user's games.
 
 ### Optional AI explanations (M7, off by default)
 
-Bring-your-own-key; stored only in `localStorage`, sent only to the provider
-the user chose, never in the repo. The prompt contains only engine facts and
-detector outputs, and instructs the model not to add evaluations. The app is
-complete without it.
+The AI only rewords a note the coach already built from engine and detector
+facts. Three providers, all lazy-loaded (`src/ai/index.ts` is tiny and
+imports a provider only when it is chosen; the service worker never caches
+AI code):
+
+- **In this browser (WebLLM):** Llama-3.2-1B-Instruct q4f16 (low-resource
+  model in WebLLM's list, ~0.9 GB GPU memory, ~700 MB download measured from
+  its weight files). WebGPU is checked first; the size is shown and the
+  download starts only after the user presses the button.
+- **Ollama:** a server address the user enters (http/https only), model
+  picked from `/api/tags`; the user must allow the site in `OLLAMA_ORIGINS`.
+- **Own key (Anthropic only):** official SDK in browser mode; key in
+  `localStorage` only (never IndexedDB, never in backups), "Forget key".
+  Default model `claude-opus-5-5` (editable), effort `low`, server-side
+  refusal fallback; a refusal shows the normal note. One vendor keeps the
+  key-handling surface small.
+
+Every answer goes through `checkRewrite`: markup stripped, 8–400 chars, and
+any move/square, number or chess concept (fork, mate, threat…) not present in
+the original note rejects the whole answer. 12 s timeout; any failure shows
+the coach's own words silently. A "show the coach's words" toggle is always
+offered next to AI wording.
 
 ## Milestones
 
@@ -227,7 +245,16 @@ desktop (1440×900) sizes, committed.
   engine, visualization drills (name the square, blindfold-lite), two-minute
   placement for new players. New verified endgame detectors: opposition,
   king centrality, rook behind passed pawn, rule of the square.
-  195 unit tests, 35 e2e runs + a Stockfish content check. Next: M7.
+  195 unit tests, 35 e2e runs + a Stockfish content check. Released
+  2026-10-15.
+- **M7 — done locally (2026-10-15), not yet released.** Keyboard play on
+  every board and spoken moves, reduced motion, contrast fixes, axe on every
+  page (both themes, phone + desktop); sounds; 4 boards and 3 piece sets;
+  streak and 19 badges; versioned export/import with strict validation;
+  optional AI wording (WebLLM / Ollama / own Anthropic key); offline service
+  worker, manifest, Open Graph image; README with screenshots, CONTRIBUTING,
+  SECURITY, issue templates. 250 unit tests, 51 e2e runs. Lighthouse mobile
+  (local build) 99/100/100/100, same as the M6 build measured the same way.
 
 ### Content is verified, not asserted (M6)
 
@@ -343,6 +370,55 @@ desktop (1440×900) sizes, committed.
   two themed sets only for weak skills puzzles really train (motifs; blunders
   → loose pieces; calculation → mate in 2), topped up with general tactics,
   and one game. Openings/endgames get no themed puzzles — their drills are M6.
+- **M7 accessibility.** The board itself is keyboard-operable (role
+  "application", arrow-key cursor drawn as a navy/amber ring, Enter = tap via
+  chessground's `selectSquare`, Esc = drop) instead of a separate keyboard
+  board, so every view gets it at once. "Up" is always up on screen. Typed
+  moves remain. Moves are announced as "You: White knight to f3, check."
+  followed by "Coach: Nf3 was Best. …" in one polite live region; cursor
+  moves use the board's own polite region. In "name the square" the cursor
+  doesn't say square names (it would give the answer). The Blunder badge
+  background went from #d55e00 to #b84f00 (white text 3.9 → 5.05:1); arrows
+  keep the Okabe–Ito colors (non-text, 3:1 rule).
+- **Sounds:** Kenney CC0 packs, MP3 (plays everywhere incl. older iOS),
+  ~5 KB each, built by `scripts/build-sounds.sh`. One sound per move, chosen
+  by `Board` from the position before the move, so every board has sounds
+  without per-view code; game end plays 350 ms later. Web pages can't read
+  the phone's silent switch, so: off by default when the user prefers reduced
+  motion, and `navigator.audioSession.type = 'ambient'` (Safari 17+) makes
+  sounds obey the switch where supported. The choice is remembered once made.
+- **Themes:** default board "Beacyn" (cream #ece8dd / slate #8d99b3, amber
+  last move and selection) — navy squares would hide black pieces and the
+  blue "better move" arrow. Boards are CSS conic gradients (no images).
+  Piece sets only with GPL-compatible licenses: cburnett (default), merida
+  (GPLv2+), chessnut (Apache-2.0, license file shipped); the many CC BY-NC-SA
+  and "freeware" sets on Lichess were skipped.
+- **Streak:** any finished game vs the coach, puzzle, lesson, opening drill
+  or endgame drill marks the day. One missed day freezes the streak (it
+  doesn't add, doesn't break); two in a row end it. Today never breaks it.
+- **Badges** are recomputed from saved data on Home and Progress; once
+  earned they're stored with a date and never removed (e.g. a skill dipping
+  below 60 later). New badges are celebrated once. Skill badges are checked
+  on the Progress page (scoring every game is too much work for Home).
+- **Backup format** `{ app: "beacyn-chess", version: 1, exportedAt, data }`.
+  Import: 25 MB limit before reading; every record rebuilt from a whitelist
+  with type and range checks; games replayed with chess.js (illegal move or
+  wrong SAN → skipped); record keys checked (no `__proto__`); count limits
+  per list; damaged records skipped and counted ("Skipped 2 games…"); a
+  wrong top level or version rejects the file; never rendered as HTML; AI
+  settings are never imported (a file must not point the app at a server).
+  Merge keeps both (this browser's copy, settings and rating win; earliest
+  badge date; more-reviewed SRS card). Replace asks with a red button.
+- **Offline:** a hand-written service worker generated at build
+  (`scripts/sw-template.js` + file list from `dist/`), registered after
+  `load`. Precaches the app, engine, puzzles, openings, sounds and pieces
+  (~4.4 MB, mostly the 1.8 MB engine) so play, puzzles and lessons work
+  offline after one visit; pages are network-first so updates show at once.
+  No Workbox/vite-plugin-pwa dependency. Playwright blocks service workers
+  except in the offline test.
+- **Sharing:** Open Graph/Twitter tags with an absolute URL built from the
+  repo owner and base path (forks get their own), and a 1200×630 image
+  rendered from HTML by `scripts/build-og-image.cjs`.
 - PGN import treats files as untrusted: 100 KB / 300-move limits, friendly
   error messages, first game of multi-game files, only moves, result, date
   and a cleaned opponent name are kept (comments and other tags dropped),

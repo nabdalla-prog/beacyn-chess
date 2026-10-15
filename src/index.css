@@ -1887,3 +1887,10 @@ button.link.tiny-link {
   text-decoration: none;
   font-weight: 600;
 }
+
+/* Plain text links follow the brand ink colour (navy in light, amber in dark). */
+main a:not([class]),
+main a.small {
+  color: var(--ink-accent);
+  text-underline-offset: 2px;
+}
